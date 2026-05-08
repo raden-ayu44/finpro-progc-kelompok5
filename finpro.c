@@ -62,7 +62,7 @@ typedef struct {
     DecimalNumbers decimal;
     FunctionParameter param;
     int methodSelected[4];
-    RootMethods method;
+    double xl, xu, x0, x1;
     ExitChoice exitChoice;
 } FunctionConfig;
 
@@ -170,8 +170,7 @@ void printTrueRootQuadratic(double *c, int decimal) {
     double x1 = (-c[1] + sqrt(disc)) / (2 * c[0]);
     double x2 = (-c[1] - sqrt(disc)) / (2 * c[0]);
     double xt;
-    sprintf(fmt, "True Roots f(x)             :  xt_x1 = %%.%df\n", decimal); printf(fmt, x1);
-    sprintf(fmt, "                               xt_x2 = %%.%df\n", decimal); printf(fmt, x2);
+    sprintf(fmt, "True Roots f(x)             :  xt_x1 = %%.%df | xt_x2 = %%.%df\n", decimal, decimal); printf(fmt, x1, x2);
     if (x1 >= x2) {
         xt = x1;
     } else {
@@ -339,7 +338,6 @@ void inputRootMethods(FunctionConfig *cfg) {
             printf("Pilihan tidak valid! Tolong masukkan angka 0/1/2/3/4.\n\n");
         }
     } while (method != 0);
-    cfg->method = (RootMethods)method;
 }
 
 void inputStopMode(FunctionConfig *cfg, StopCriteria *sc) {
@@ -449,30 +447,44 @@ double evaluateDerivative(FunctionConfig *cfg, double x) {
 
 /* FUNGSI INPUT BRACKET DAN GUESS */
 
-void inputBracket(FunctionConfig *cfg, double *xl, double *xu) {
+void inputBracket(FunctionConfig *cfg) {
     char fmt[100];
     int dec = cfg->decimal;
     printf("Masukkan Batas Bawah (xl) dan Batas Atas (xu) [ Bisection & False-Position ]\n\n"); 
     printf("※  Program akan melakukan verifikasi terlebih dahulu untuk memastikan terdapat root\n");
     printf("   di interval yang diberikan!\n\n");
-    printf("xl = "); scanf("%lf", xl);
-    sprintf(fmt, "f(xl) = %%.%df"); printf(fmt, evaluateFunction(cfg, *xl)); printf("\n");
-    printf("xu = "); scanf("%lf", xu);
-    sprintf(fmt, "f(xu) = %%.%df"); printf(fmt, evaluateFunction(cfg, *xu)); printf("\n");
-    while (evaluateFunction(cfg, *xl) * evaluateFunction(cfg, *xu) > 0) {
-        sprintf(fmt, "f(%%.%df) * f(%%.%df) > 0 tidak memenuhi kondisi! Bracket: [%%.%df, %%.%df] tidak dapat digunakan!\n", dec, dec, dec, dec);
-        printf(fmt, *xl, *xu, *xl, *xu); printf("Tolong masukkan kembali xl dan xu.\n\n");
-        printf("xl = "); scanf("%lf", xl);
-        sprintf(fmt, "f(xl) = %%.%df", dec); printf(fmt, evaluateFunction(cfg, *xl));
-        printf("xu = "); scanf("%lf", xu);
-        sprintf(fmt, "f(xu) = %%.%df", dec); printf(fmt, evaluateFunction(cfg, *xu));
+    printf("xl = "); scanf("%lf", &cfg->xl);
+    sprintf(fmt, "f(xl) = %%.%df", dec); printf(fmt, evaluateFunction(cfg, cfg->xl)); printf("\n\n");
+    printf("xu = "); scanf("%lf", &cfg->xu);
+    sprintf(fmt, "f(xu) = %%.%df", dec); printf(fmt, evaluateFunction(cfg, cfg->xu)); printf("\n\n");
+    while (evaluateFunction(cfg, cfg->xl) * evaluateFunction(cfg, cfg->xu) > 0) {
+        sprintf(fmt, "f(%%.%df) * f(%%.%df) > 0 tidak memenuhi kondisi!\n", dec, dec); printf(fmt, cfg->xl, cfg->xu); 
+        sprintf(fmt, "Bracket: [%%.%df, %%.%df] tidak dapat digunakan!\n", dec, dec); printf(fmt, cfg->xl, cfg->xu); 
+        printf("Tolong masukkan kembali xl dan xu.\n\n");
+        printf("xl = "); scanf("%lf", &cfg->xl);
+        sprintf(fmt, "f(xl) = %%.%df", dec); printf(fmt, evaluateFunction(cfg, cfg->xl)); printf("\n\n");
+        printf("xu = "); scanf("%lf", &cfg->xu);
+        sprintf(fmt, "f(xu) = %%.%df", dec); printf(fmt, evaluateFunction(cfg, cfg->xu)); printf("\n\n");
     }
-    sprintf(fmt, "f(%%.%df) * f(%%.%df) < 0 memenuhi kondisi! Bracket: [%%.%df, %%.%df] dapat digunakan!\n\n", dec, dec, dec, dec);
-    printf(fmt, *xl, *xu, *xl, *xu);
+    sprintf(fmt, "f(%%.%df) * f(%%.%df) < 0 memenuhi kondisi!\n", dec, dec); printf(fmt, cfg->xl, cfg->xu);
+    sprintf(fmt, "Bracket: [%%.%df, %%.%df] dapat digunakan!\n\n", dec, dec); printf(fmt, cfg->xl, cfg->xu); 
 }
 
-void inputGuess(FunctionConfig *cfg, double *x0, double *x1) {
-    
+void inputGuess(FunctionConfig *cfg) {
+    if (cfg->methodSelected[NEWTON_RAPHSON - 1]) {
+        printf("Masukkan Initial Guess (x0) [ Newton-Raphson ]\n\n");
+        printf("x0 = "); scanf("%lf", &cfg->x0); printf("\n"); 
+    }
+    if (cfg->methodSelected[SECANT - 1]) {
+        printf("Masukkan Initial Guesses (x0) dan (x1) [ Secant | x0 dan x1 Tidak Boleh Sama ]\n\n");
+        printf("x0 = "); scanf("%lf", &cfg->x0);  
+        printf("x1 = "); scanf("%lf", &cfg->x1); printf("\n"); 
+        while (cfg->x0 == cfg->x1) {
+            printf("Input tidak valid! x0 dan x1 tidak boleh sama.\n\n");
+            printf("x0 = "); scanf("%lf", &cfg->x0);
+            printf("x1 = "); scanf("%lf", &cfg->x1); printf("\n");
+        }
+    }
 }
 
 /* FUNGSI KOMPUTASI NUMERIK */
@@ -562,7 +574,6 @@ double methodSecant(FunctionConfig *cfg, double x0, double x1, StopCriteria sc) 
 int main() {
     FunctionConfig cfg;
     StopCriteria sc;
-    double xl, xu, x0, x1;
 
     printf("===============================================================================================\n\n");
     printf("                       PROGRAM KALKULATOR ROOT FINDING - POLINOMIAL & EULER             \n");
@@ -601,19 +612,19 @@ int main() {
         inputStopMode(&cfg, &sc);
         printf("===============================================================================================\n\n");
 
+        if (cfg.methodSelected[BISECTION - 1] || cfg.methodSelected[FALSE_POSITION - 1]) {
+            inputBracket(&cfg);
+            printf("===============================================================================================\n\n");
+        }
+
+        if (cfg.methodSelected[NEWTON_RAPHSON - 1] || cfg.methodSelected[SECANT - 1]) {
+            inputGuess(&cfg);
+            printf("===============================================================================================\n\n");
+        }
+
         /*
         panggil fungsi printMethods (tabel)
         */
-
-        if (cfg.method == BISECTION) {
-            inputBracket(&cfg, &xl, &xu);
-            printf("===============================================================================================\n\n");
-        }
-
-        if (cfg.method == FALSE_POSITION) {
-            inputBracket(&cfg, &xl, &xu);
-            printf("===============================================================================================\n\n");
-        }
 
         inputExitChoice(&cfg);
         printf("===============================================================================================\n\n");
