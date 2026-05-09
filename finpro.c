@@ -73,6 +73,19 @@ typedef struct {
 } StopCriteria;
 
 typedef struct {
+    int iter;
+    double xl, xu, xi_1, xi, xr, ea;
+} IterationResult;
+
+typedef struct {
+    IterationResult *rows;
+    int count;
+    int capacity;
+    double root;
+    double finalEa;
+} MethodResult;
+
+typedef struct {
     char *funcName;      
     char *funcFormat;
     char *funcCondition;    
@@ -288,10 +301,10 @@ void inputRootMethods(FunctionConfig *cfg) {
     printf("Anda boleh memilih lebih dari satu Metode!\n");
     printf("※  Anda dapat membatalkan pilihan Metode dengan memasukkan angka yang sama.\n");
     printf("   Semua pilihan Anda akan otomatis tersimpan setelah pemilihan ke-9 kali.\n\n");
-    printf("[1] Bisection       :  Membutuhkan xl (batas bawah) dan xu (batas atas)\n");
-    printf("[2] False-Position  :  Membutuhkan xl (batas bawah) dan xu (batas atas)\n");
-    printf("[3] Newton-Raphson  :  Membutuhkan x0 (tebakan awal)\n");
-    printf("[4] Secant          :  Membutuhkan x0 (tebakan pertama) dan x1 (tebakan kedua)\n");
+    printf("[1] Bisection       :  Membutuhkan xl (lower guess) dan xu (upper guess)\n");
+    printf("[2] False-Position  :  Membutuhkan xl (lower guess) dan xu (upper guess)\n");
+    printf("[3] Newton-Raphson  :  Membutuhkan x0 (initial guess)\n");
+    printf("[4] Secant          :  Membutuhkan x0 (initial guess 1) dan x1 (initial guess 2)\n");
     printf("[0] Selesai\n\n");
     int method;
     do {
@@ -450,7 +463,7 @@ double evaluateDerivative(FunctionConfig *cfg, double x) {
 void inputBracket(FunctionConfig *cfg) {
     char fmt[100];
     int dec = cfg->decimal;
-    printf("Masukkan Batas Bawah (xl) dan Batas Atas (xu) [ Bisection & False-Position ]\n\n"); 
+    printf("Masukkan Lower Guess (xl) dan Upper Guess (xu) [ Bisection & False-Position ]\n\n"); 
     printf("※  Program akan melakukan verifikasi terlebih dahulu untuk memastikan terdapat root\n");
     printf("   di interval yang diberikan!\n\n");
     printf("xl = "); scanf("%lf", &cfg->xl);
@@ -473,9 +486,9 @@ void inputBracket(FunctionConfig *cfg) {
 void inputGuess(FunctionConfig *cfg) {
     int newton_raphson = cfg->methodSelected[NEWTON_RAPHSON - 1];
     int secant = cfg->methodSelected[SECANT - 1];
+    printf("Masukkan Initial Guesses (x0) dan (x1) [ Newton-Raphson & Secant | x0 dan x1 Tidak Boleh Sama ]\n\n");
+    printf("※  x0 untuk Newton-Raphson | x0 dan x1 untuk Secant\n\n");
     if (newton_raphson && secant) {
-        printf("Masukkan Initial Guesses (x0) dan (x1) [ Newton-Raphson & Secant | x0 dan x1 Tidak Boleh Sama ]\n\n");
-        printf("※  x0 untuk Newton-Raphson | x0 dan x1 untuk Secant\n\n");
         printf("x0 = "); scanf("%lf", &cfg->x0);  
         printf("x1 = "); scanf("%lf", &cfg->x1); printf("\n"); 
         while (cfg->x0 == cfg->x1) {
@@ -484,10 +497,8 @@ void inputGuess(FunctionConfig *cfg) {
             printf("x1 = "); scanf("%lf", &cfg->x1); printf("\n");
         } 
     } else if (newton_raphson) {
-        printf("Masukkan Initial Guess (x0) [ Newton-Raphson ]\n\n");
         printf("x0 = "); scanf("%lf", &cfg->x0); printf("\n"); 
     } else if (secant) {
-        printf("Masukkan Initial Guesses (x0) dan (x1) [ Secant | x0 dan x1 Tidak Boleh Sama ]\n\n");
         printf("x0 = "); scanf("%lf", &cfg->x0);  
         printf("x1 = "); scanf("%lf", &cfg->x1); printf("\n"); 
         while (cfg->x0 == cfg->x1) {
@@ -498,14 +509,40 @@ void inputGuess(FunctionConfig *cfg) {
     }
 }
 
+// FUNGSI KONDISI BERHENTI ITERASI //
+
+int shouldContinue(StopCriteria sc, int iter, double ea) {
+    switch (sc.mode) {
+        case ITER: 
+            return iter < sc.maxIter;
+        case EA:   
+            return ea > sc.stopError;
+        case BOTH: 
+            return iter < sc.maxIter && ea > sc.stopError;
+        default:   
+            return 0;
+    }
+}
+
+// FUNGSI KONDISI ALOKASI MEMORI ROW //
+
+int shouldRealloc(MethodResult *res) {
+    return res->count >= res->capacity;
+}
+
 /* FUNGSI KOMPUTASI NUMERIK */
 
-double methodBisection(FunctionConfig *cfg, StopCriteria sc) {
-    double xl = cfg->xl;
-    double xu = cfg->xu;
-    double xr = 0;
-    double xrold;
-    double ea = 100.0;
+MethodResult methodBisection(FunctionConfig *cfg, StopCriteria sc) {
+    MethodResult res;
+    res.count = 0;
+    if (sc.mode == EA) {
+        res.capacity = 10;
+    } else {
+        res.capacity = sc.maxIter;
+    }
+    res.rows = malloc(res.capacity * sizeof(IterationResult));
+    double xl = cfg->xl, xu = cfg->xu;
+    double xr = 0, xrold, ea = 100.0;
     int iter = 0;
     do {
         xrold = xr;
@@ -516,70 +553,139 @@ double methodBisection(FunctionConfig *cfg, StopCriteria sc) {
         else if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) > 0) {
             xl = xr;
         }
+        if (xr != 0) {
+            ea = fabs((xr - xrold) / xr) * 100;
+        }
+        if (shouldRealloc(&res)) {
+            res.capacity *= 2;
+            res.rows = realloc(res.rows, res.capacity * sizeof(IterationResult));
+        }
+        res.rows[res.count].iter = iter + 1;
+        res.rows[res.count].xl = xl;
+        res.rows[res.count].xu = xu;
+        res.rows[res.count].xr = xr;
+        res.rows[res.count].ea = ea;
+        res.count++;
         iter++;
+    } while (shouldContinue(sc, iter, ea));
+    res.root = xr;
+    res.finalEa = ea;      
+    return res;
+}
+
+MethodResult methodFalsePosition (FunctionConfig *cfg, StopCriteria sc) {
+    MethodResult res;
+    res.count = 0;
+    if (sc.mode == EA) {
+        res.capacity = 10;
+    } else {
+        res.capacity = sc.maxIter;
+    }
+    res.rows = malloc(res.capacity * sizeof(IterationResult));
+    double xl = cfg->xl, xu = cfg->xu;
+    double xr = 0, xrold, ea = 100.0;
+    int iter = 0;
+    do {
+        xrold = xr;
+        xr = xu - (evaluateFunction(cfg, xu) * (xl - xu) / (evaluateFunction(cfg, xl) - evaluateFunction(cfg, xu)));
+        if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) < 0) {
+            xu = xr;
+        }
+        else if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) > 0) {
+            xl = xr;
+        }
         if (xr != 0) {
             ea = fabs((xr - xrold) / xr) * 100;
         } 
-    } while (iter < sc.maxIter && ea > sc.stopError);        
-    return xr;
+        if (shouldRealloc(&res)) {
+            res.capacity *= 2;
+            res.rows = realloc(res.rows, res.capacity * sizeof(IterationResult));
+        }
+        res.rows[res.count].iter = iter + 1;
+        res.rows[res.count].xl = xl;
+        res.rows[res.count].xu = xu;
+        res.rows[res.count].xr = xr;
+        res.rows[res.count].ea = ea;
+        res.count++;
+        iter++;
+    } while (shouldContinue(sc, iter, ea));        
+    res.root = xr;
+    res.finalEa = ea;      
+    return res;
 }
 
-double methodFalsePosition (FunctionConfig *cfg, double xl, double xu, StopCriteria sc) {
-    double xr, xrold, ea = 100.0;
-    int iter = 0;
-    if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xu) < 0) {
-        xr = xu - (evaluateFunction(cfg, xu) * (xl - xu) / (evaluateFunction(cfg, xl) - evaluateFunction(cfg, xu)));
-        do {
-            xrold = xr;
-            if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) < 0) {
-                xu = xr;
-                xr = xu - (evaluateFunction(cfg, xu) * (xl - xu) / (evaluateFunction(cfg, xl) - evaluateFunction(cfg, xu)));
-            }
-            else if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) > 0) {
-                xl = xr;
-                xr = xu - (evaluateFunction(cfg, xu) * (xl - xu) / (evaluateFunction(cfg, xl) - evaluateFunction(cfg, xu)));
-            }
-            iter++;
-            if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) != 0) {
-                ea = fabs((xr - xrold) / xr) * 100;
-            } 
-        } while (iter < sc.maxIter && ea > sc.stopError);        
-        return xr;
+MethodResult methodNewtonRaphson(FunctionConfig *cfg, StopCriteria sc) {
+    MethodResult res;
+    res.count = 0;
+    if (sc.mode == EA) {
+        res.capacity = 10;
     } else {
-        printf("BRACKET TIDAK BISA DIGUNAKAN");
-        return 0.0;
-    } 
-}
-
-double methodNewtonRaphson(FunctionConfig *cfg, double x, StopCriteria sc) {
+        res.capacity = sc.maxIter;
+    }
+    res.rows = malloc(res.capacity * sizeof(IterationResult));
+    double x = cfg->x0;
     double xr, xrold, ea = 100.0;
     int iter = 0;
     do {
         xrold = x;
         xr = x - (evaluateFunction(cfg, x) / evaluateDerivative(cfg, x));
         x = xr;
-        iter++;
         if (xr != 0) {
             ea = fabs((xr - xrold) / xr) * 100;
         }
-    } while (iter < sc.maxIter && ea > sc.stopError);        
-    return xr;
+        if (shouldRealloc(&res)) {
+            res.capacity *= 2;
+            res.rows = realloc(res.rows, res.capacity * sizeof(IterationResult));
+        }
+        res.rows[res.count].iter = iter + 1;
+        res.rows[res.count].xi = xrold;
+        res.rows[res.count].xr = xr;
+        res.rows[res.count].ea = ea;
+        res.count++;
+        iter++;
+    } while (shouldContinue(sc, iter, ea));        
+    res.root = xr;
+    res.finalEa = ea;      
+    return res;
 }
 
-double methodSecant(FunctionConfig *cfg, double x0, double x1, StopCriteria sc) {
+MethodResult methodSecant(FunctionConfig *cfg, StopCriteria sc) {
+    MethodResult res;
+    res.count = 0;
+    if (sc.mode == EA) {
+        res.capacity = 10;
+    } else {
+        res.capacity = sc.maxIter;
+    }
+    res.rows = malloc(res.capacity * sizeof(IterationResult));
+    double x0 = cfg->x0, x1 = cfg->x1;
     double xr, xrold, ea = 100.0;
     int iter = 0;
     do {
         xrold = x1;
         xr = x1 - (evaluateFunction(cfg, x1) * (x1 - x0) / (evaluateFunction(cfg, x0) - evaluateFunction(cfg, x1)));
+        double xi_1_save = x0;
+        double xi_save   = x1;
         x0 = x1;
         x1 = xr;
-        iter++;
         if (xr != 0) {
             ea = fabs((xr - xrold) / xr) * 100;
         }
-    } while (iter < sc.maxIter && ea > sc.stopError);        
-    return xr;
+        if (shouldRealloc(&res)) {
+            res.capacity *= 2;
+            res.rows = realloc(res.rows, res.capacity * sizeof(IterationResult));
+        }
+        res.rows[res.count].iter = iter + 1;
+        res.rows[res.count].xi_1 = xi_1_save;
+        res.rows[res.count].xi = xi_save;
+        res.rows[res.count].xr = xr;
+        res.rows[res.count].ea = ea;
+        res.count++;
+        iter++;
+    } while (shouldContinue(sc, iter, ea));        
+    res.root = xr;
+    res.finalEa = ea;      
+    return res;
 }
 
 /* PROGRAM UTAMA */
