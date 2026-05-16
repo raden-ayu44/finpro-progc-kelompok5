@@ -212,7 +212,7 @@ void inputDecimalNumbers(FunctionConfig *cfg) {
 
 void printLinearFunction(char *n, double *c, int decimal) {
     char fmt[100];
-    sprintf(fmt, "Fungsi %%s Anda          :  f(x) = %%.%dfx + %%.%df\n", decimal, decimal);
+    sprintf(fmt, "Fungsi %%s Anda  :  f(x) = %%.%dfx + %%.%df\n", decimal, decimal);
     printf(fmt, n, c[0], c[1]);
 }
 
@@ -220,7 +220,7 @@ void printLinearFunction(char *n, double *c, int decimal) {
 
 void printQuadraticFunction(char *n, double *c, int decimal) {
     char fmt[100];
-    sprintf(fmt, "Fungsi %%s Anda       :  f(x) = %%.%dfx^2 + %%.%dfx + %%.%df\n", decimal, decimal, decimal);
+    sprintf(fmt, "Fungsi %%s Anda  :  f(x) = %%.%dfx^2 + %%.%dfx + %%.%df\n", decimal, decimal, decimal);
     printf(fmt, n, c[0], c[1], c[2]);
 }
 
@@ -228,7 +228,7 @@ void printQuadraticFunction(char *n, double *c, int decimal) {
 
 void printCubicFunction(char *n, double *c, int decimal) {
     char fmt[100];
-    sprintf(fmt, "Fungsi %%s Anda            :  f(x) = %%.%dfx^3 + %%.%dfx^2 + %%.%dfx + %%.%df\n", decimal, decimal, decimal, decimal);
+    sprintf(fmt, "Fungsi %%s Anda  :  f(x) = %%.%dfx^3 + %%.%dfx^2 + %%.%dfx + %%.%df\n", decimal, decimal, decimal, decimal);
     printf(fmt, n, c[0], c[1], c[2], c[3]);
 }
 
@@ -245,8 +245,7 @@ void printEulerFunction(char *n, double *c, int decimal) {
 void printTrueRootLinear(double *c, int decimal, FunctionConfig *cfg) {
     char fmt[100];
     double xt = -(c[1] / c[0]);
-    sprintf(fmt, "True Root f(x)              :  xt = %%.%df\n", decimal); printf(fmt, xt);
-    sprintf(fmt, "Root Pembanding True Error  :  xt = %%.%df\n\n", decimal); printf(fmt, xt);
+    sprintf(fmt, "True Root f(x)      :  xt = %%.%df\n\n", decimal); printf(fmt, xt);
     printf("※   xt digunakan untuk mencari True Relative Error (%%et) dari setiap Metode.\n\n");
     cfg->xt_lin = xt;
 }
@@ -258,12 +257,11 @@ void printTrueRootQuadratic(double *c, int decimal, FunctionConfig *cfg) {
     double disc = pow(c[1], 2) - 4 * c[0] * c[2];
     double x1 = (-c[1] + sqrt(disc)) / (2 * c[0]);
     double x2 = (-c[1] - sqrt(disc)) / (2 * c[0]);
-    double xt;
-    sprintf(fmt, "True Roots f(x)             :  xt_x1 = %%.%df | xt_x2 = %%.%df\n", decimal, decimal); printf(fmt, x1, x2);
-    if (x1 >= x2) { xt = x1; } else { xt = x2; } 
-    sprintf(fmt, "Root Pembanding True Error  :  xt = %%.%df\n\n", decimal); printf(fmt, xt);
-    printf("※   xt digunakan untuk mencari True Relative Error (%%et) dari setiap Metode.\n\n");
-    cfg->xt_quad = xt;
+    sprintf(fmt, "True Roots f(x)        :  xt_1 = %%.%df | xt_2 = %%.%df\n\n", decimal, decimal);
+    printf(fmt, x1, x2);
+    printf("※   xt digunakan untuk mencari True Relative Error (%%et) dari setiap Metode.\n");
+    printf("    xt yang digunakan akan otomatis disesuaikan dengan akar terdekat dari xr.\n\n");
+    cfg->xt_quad = (x1 >= x2) ? x1 : x2;
 }
 
 // fungsi print true root real terbesar dari fungsi kubik yang diberikan user di fungsi input parameter/koefisien
@@ -271,28 +269,33 @@ void printTrueRootQuadratic(double *c, int decimal, FunctionConfig *cfg) {
 void printTrueRootCubic(double *c, int decimal, FunctionConfig *cfg) {
     char fmt[100];
     double xt;
-    double p = (3 * c[0] * c[2] - pow(c[1], 2)) / (3* pow(c[0], 2));
+    double p = (3 * c[0] * c[2] - pow(c[1], 2)) / (3 * pow(c[0], 2));
     double q = (2 * pow(c[1], 3) - 9 * c[0] * c[1] * c[2] + 27 * pow(c[0], 2) * c[3]) / (27 * pow(c[0], 3));
     double delta = pow(q / 2, 2) + pow(p / 3, 3);
     if (delta > 0) {
         double complex u = cpow(-q / 2 + csqrt(delta), 1.0 / 3.0);
         double complex v = cpow(-q / 2 - csqrt(delta), 1.0 / 3.0);
         xt = creal(u + v) - c[1] / (3 * c[0]);
+        sprintf(fmt, "True Root f(x)     :  xt = %%.%df\n\n", decimal); printf(fmt, xt);
+        printf("※   xt digunakan untuk mencari True Relative Error (%%et) dari setiap Metode.\n\n");
     } else {
         double r = 2 * sqrt(-p / 3.0);
         double theta = acos((3 * q / (2 * p)) * sqrt(-3.0 / p));
+        double roots[3];
         double max_x = -INFINITY;
         for (int i = 0; i < 3; i++) {
-            double x = r * cos((theta + 2 * M_PI * i) / 3.0) - c[1] / (3 * c[0]);
-            if (x > max_x) max_x = x;
+            roots[i] = r * cos((theta + 2 * M_PI * i) / 3.0) - c[1] / (3 * c[0]);
+            if (roots[i] > max_x) max_x = roots[i];
         }
         xt = max_x;
-        int rounding = pow(10, (decimal+1));
+        int rounding = (int)pow(10, (decimal + 1));
         xt = round(xt * rounding) / rounding;
+        sprintf(fmt, "True Roots f(x)    :  xt_1 = %%.%df | xt_2 = %%.%df | xt_3 = %%.%df\n\n",
+            decimal, decimal, decimal);
+        printf(fmt, roots[0], roots[1], roots[2]);
+        printf("※   xt digunakan untuk mencari True Relative Error (%%et) dari setiap Metode.\n");
+        printf("    xt yang digunakan akan otomatis disesuaikan dengan akar terdekat dari xr.\n\n");
     }
-    sprintf(fmt, "Highest Real True Root f(x)  :  xt = %%.%df\n", decimal); printf(fmt, xt);
-    sprintf(fmt, "Root Pembanding True Error   :  xt = %%.%df\n\n", decimal); printf(fmt, xt);
-    printf("※   xt digunakan untuk mencari True Relative Error (%%et) dari setiap Metode.\n\n");
     cfg->xt_cube = xt;
 }
 
@@ -730,11 +733,15 @@ void inputGuessSecant(FunctionConfig *cfg) {
 
 // fungsi untuk menentukan logika keluar loop iterasi do-while berdasarkan mode berhenti
 // menggunakan constraint paksa berhenti iterasi apabila nilai xr melebihi 10000 atau iterasi melebihi 100 (batas iterasi maksimum default)
+// atau ea lebih kecil dari 0.0001 (batas ea minimum default)
 
 int shouldContinue(StopCriteria sc, int iter, double ea, double xr) {
     if (!isfinite(xr) || !isfinite(ea) ||fabs(xr) > 10000.0) { 
         return 0; 
     }
+	if (iter > 1 && fabs(ea) < DEFAULT_ES) {
+    	return 0;
+	}
     switch (sc.mode) {
         case ITER: 
             return iter < sc.maxIter;
@@ -753,26 +760,77 @@ int shouldRealloc(MethodResult *res) {
     return res->count >= res->capacity;
 }
 
+// fungsi untuk mencari semua akar real polinomial dan mengembalikan yang paling dekat dengan xr
+
+double findClosestRoot(FunctionConfig *cfg, double xr) {
+    double roots[3];
+    int nRoots = 0;
+    switch (cfg->degree) {
+        case LINEAR: {
+            roots[0] = -(cfg->param.linear[1] / cfg->param.linear[0]);
+            nRoots = 1;
+            break;
+        }
+        case QUADRATIC: {
+            double a = cfg->param.quadratic[0];
+            double b = cfg->param.quadratic[1];
+            double c = cfg->param.quadratic[2];
+            double disc = b*b - 4*a*c;
+            if (disc < 0) {
+                return cfg->xt_quad;
+            }
+            roots[0] = (-b + sqrt(disc)) / (2*a);
+            roots[1] = (-b - sqrt(disc)) / (2*a);
+            nRoots = 2;
+            break;
+        }
+        case CUBIC: {
+            double a = cfg->param.cubic[0];
+            double b = cfg->param.cubic[1];
+            double c = cfg->param.cubic[2];
+            double d = cfg->param.cubic[3];
+            double p = (3*a*c - b*b) / (3*a*a);
+            double q = (2*b*b*b - 9*a*b*c + 27*a*a*d) / (27*a*a*a);
+            double delta = pow(q/2, 2) + pow(p/3, 3);
+            if (delta > 0) {
+                double complex u = cpow(-q/2 + csqrt(delta), 1.0/3.0);
+                double complex v = cpow(-q/2 - csqrt(delta), 1.0/3.0);
+                roots[0] = creal(u + v) - b/(3*a);
+                nRoots = 1;
+            } else {
+                double r     = 2 * sqrt(-p/3.0);
+                double theta = acos((3*q / (2*p)) * sqrt(-3.0/p));
+                for (int i = 0; i < 3; i++) {
+                    roots[i] = r * cos((theta + 2*M_PI*i) / 3.0) - b/(3*a);
+                }
+                nRoots = 3;
+            }
+            break;
+        }
+        default:
+            return 0;
+    }
+    double closest = roots[0];
+    for (int i = 1; i < nRoots; i++) {
+        if (fabs(roots[i] - xr) < fabs(closest - xr))
+            closest = roots[i];
+    }
+    return closest;
+}
+
 // fungsi untuk menghitung true error khusus untuk fungsi polinomial
 
 double calcTrueError(FunctionConfig *cfg, double xr) {
-    switch (cfg->degree) {
-        case 1: return fabs(cfg->xt_lin - xr);
-        case 2: return fabs(cfg->xt_quad - xr);
-        case 3: return fabs(cfg->xt_cube - xr);
-        default: return 0;
-    }
+    double xt = findClosestRoot(cfg, xr);
+    return fabs(xt - xr);
 }
 
 // fungsi untuk menghitung true error relative khusus untuk fungsi polinomial
 
 double calcTrueErrorRelative(FunctionConfig *cfg, double xr) {
-    switch (cfg->degree) {
-        case 1: return calcTrueError(cfg, xr) / cfg->xt_lin * 100;
-        case 2: return calcTrueError(cfg, xr) / cfg->xt_quad * 100;
-        case 3: return calcTrueError(cfg, xr) / cfg->xt_cube * 100;
-        default: return 0;
-    }
+    double xt = findClosestRoot(cfg, xr);
+    if (fabs(xt) < 1e-12) return 0;   // root at zero — et undefined, avoid div/0
+    return fabs(xt - xr) / fabs(xt) * 100;
 }
 
 // fungsi komputasi numerik metode bisection
@@ -1362,7 +1420,7 @@ void printScoringTable(FunctionConfig *cfg, SummaryEntry summary[], int count) {
     for(int i = 0; i < count; i++) {
         sprintf(fmt, "%d", totals[i]);
         printCenteredStr(fmt, col);
-        if (totals[i] > maxTotal) {
+        if (totals[i] > maxTotal || (totals[i] == maxTotal && summary[i].ea < summary[bestIdx].ea)) {
             maxTotal = totals[i];
             bestIdx = i;
         }
@@ -1400,8 +1458,6 @@ int main() {
     StopCriteria sc;
     SummaryEntry summaryList[4];
     int index, conv;
-
-    
 
     // print header program
     printf("========================================================================================================================\n\n");
@@ -1467,80 +1523,79 @@ int main() {
 
         // jalankan setiap metode yang dipilih, print tabel iterasi dan analisis konvergensi,
         // lalu simpan hasilnya ke summaryList untuk ditampilkan di tabel rangkuman
+        MethodResult results[4];
+        memset(results, 0, sizeof(results));
+ 
         if (cfg.methodSelected[BISECTION - 1]) {
-            MethodResult resBisection = methodBisection(&cfg, sc);
+            results[0] = methodBisection(&cfg, sc);
             printf("Tabel Iterasi Metode Bisection\n\n");
-            printBisectionFalsePosition(&cfg, sc, &resBisection);
-            printAnalysis(&cfg, &resBisection, sc, "Bisection", &conv);
-            summaryList[index].name = "Bisection";
-            summaryList[index].iterations = resBisection.count;
-            summaryList[index].xr = resBisection.root;
-            summaryList[index].ea = resBisection.finalEa;
-            summaryList[index].et = resBisection.finalEt;
-            summaryList[index].convStatus = conv;
+            printBisectionFalsePosition(&cfg, sc, &results[0]);
+            printAnalysis(&cfg, &results[0], sc, "Bisection", &conv);
+            summaryList[index].name        = "Bisection";
+            summaryList[index].iterations  = results[0].count;
+            summaryList[index].xr          = results[0].root;
+            summaryList[index].ea          = results[0].finalEa;
+            summaryList[index].et          = results[0].finalEt;
+            summaryList[index].convStatus  = conv;
             index++;
             printf("========================================================================================================================\n\n");
-            free(resBisection.rows);
         }
-
+ 
         if (cfg.methodSelected[FALSE_POSITION - 1]) {
-            MethodResult resFalsePosition = methodFalsePosition(&cfg, sc);
+            results[1] = methodFalsePosition(&cfg, sc);
             printf("Tabel Iterasi Metode False Position\n\n");
-            printBisectionFalsePosition(&cfg, sc, &resFalsePosition);
-            printAnalysis(&cfg, &resFalsePosition, sc, "False-Position", &conv);
-            summaryList[index].name = "False-Position";
-            summaryList[index].iterations = resFalsePosition.count;
-            summaryList[index].xr = resFalsePosition.root;
-            summaryList[index].ea = resFalsePosition.finalEa;
-            summaryList[index].et = resFalsePosition.finalEt;
-            summaryList[index].convStatus = conv;
+            printBisectionFalsePosition(&cfg, sc, &results[1]);
+            printAnalysis(&cfg, &results[1], sc, "False-Position", &conv);
+            summaryList[index].name        = "False-Position";
+            summaryList[index].iterations  = results[1].count;
+            summaryList[index].xr          = results[1].root;
+            summaryList[index].ea          = results[1].finalEa;
+            summaryList[index].et          = results[1].finalEt;
+            summaryList[index].convStatus  = conv;
             index++;
             printf("========================================================================================================================\n\n");
-            free(resFalsePosition.rows);
         }
-
+ 
         if (cfg.methodSelected[NEWTON_RAPHSON - 1]) {
-            MethodResult resNewtonRaphson = methodNewtonRaphson(&cfg, sc);
+            results[2] = methodNewtonRaphson(&cfg, sc);
             printf("Tabel Iterasi Newton Raphson\n\n");
-            printNewtonRaphson(&cfg, sc, &resNewtonRaphson);
-            printAnalysis(&cfg, &resNewtonRaphson, sc, "Newton-Raphson", &conv);
-            summaryList[index].name = "Newton-Raphson";
-            summaryList[index].iterations = resNewtonRaphson.count;
-            summaryList[index].xr = resNewtonRaphson.root;
-            summaryList[index].ea = resNewtonRaphson.finalEa;
-            summaryList[index].et = resNewtonRaphson.finalEt;
-            summaryList[index].convStatus = conv;
+            printNewtonRaphson(&cfg, sc, &results[2]);
+            printAnalysis(&cfg, &results[2], sc, "Newton-Raphson", &conv);
+            summaryList[index].name        = "Newton-Raphson";
+            summaryList[index].iterations  = results[2].count;
+            summaryList[index].xr          = results[2].root;
+            summaryList[index].ea          = results[2].finalEa;
+            summaryList[index].et          = results[2].finalEt;
+            summaryList[index].convStatus  = conv;
             index++;
             printf("========================================================================================================================\n\n");
-            free(resNewtonRaphson.rows);
         }
-
+ 
         if (cfg.methodSelected[SECANT - 1]) {
-            MethodResult resSecant = methodSecant(&cfg, sc);
+            results[3] = methodSecant(&cfg, sc);
             printf("Tabel Iterasi Metode Secant\n\n");
-            printSecant(&cfg, sc, &resSecant);
-            printAnalysis(&cfg, &resSecant, sc, "Secant", &conv);
-            summaryList[index].name = "Secant";
-            summaryList[index].iterations = resSecant.count;
-            summaryList[index].xr = resSecant.root;
-            summaryList[index].ea = resSecant.finalEa;
-            summaryList[index].et = resSecant.finalEt;
-            summaryList[index].convStatus = conv;
+            printSecant(&cfg, sc, &results[3]);
+            printAnalysis(&cfg, &results[3], sc, "Secant", &conv);
+            summaryList[index].name        = "Secant";
+            summaryList[index].iterations  = results[3].count;
+            summaryList[index].xr          = results[3].root;
+            summaryList[index].ea          = results[3].finalEa;
+            summaryList[index].et          = results[3].finalEt;
+            summaryList[index].convStatus  = conv;
             index++;
             printf("========================================================================================================================\n\n");
-            free(resSecant.rows);
         }
-
+ 
         // print tabel rangkuman semua metode yang dipilih,
         // dan tabel skoring hanya jika lebih dari satu metode dipilih
         if (index > 0) {
             printSummaryTable(&cfg, sc, summaryList, index);
-                if (index > 1) { 
-                    printScoringTable(&cfg, summaryList, index); 
-                }
+            if (index > 1) {
+                printScoringTable(&cfg, summaryList, index);
+            }
             printf("========================================================================================================================\n\n");
         }
-
+ 
         // tanya user apakah ingin menghitung lagi atau keluar
         inputExitChoice(&cfg);
         printf("========================================================================================================================\n\n");
