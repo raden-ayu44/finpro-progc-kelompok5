@@ -4,6 +4,7 @@
 #include <math.h>
 #include <complex.h>
 #include <float.h>
+#include <windows.h>
 
 #define MAX_ITER 100        // batas iterasi default dan constraint iter maksimum
 #define DEFAULT_ES 0.0001   // stopping error default (0.01%) dan constraint ea minimum
@@ -47,7 +48,6 @@ typedef enum {
     CALCULATE
 } ExitChoice;
 
-// fungsi utama union : membuat array untuk menyimpan koefisien dari masing-masing fungsi
 // union digunakan karena program hanya menyimpan satu jenis fungsi dalam satu waktu,
 // sehingga memori dapat digunakan bersama antar member tanpa pemborosan
 
@@ -103,6 +103,8 @@ typedef struct {
     double xr, ea, et;
 } SummaryEntry;
 
+/* KUMPULAN FUNGSI-FUNGSI */
+
 // fungsi untuk mengosongkan sisa karakter di buffer stdin setelah scanf("%lf")
 
 void clearInputBuffer() {
@@ -122,7 +124,7 @@ int scanInt(int *out) {
     return 1;
 }
 
-// fungsi untuk membaca input double : menolak huruf dan karakter tidak valid
+// fungsi untuk membaca input double : menolak input huruf dan karakter tidak valid
 
 int scanDouble(double *out) {
     char line[64];
@@ -132,8 +134,6 @@ int scanDouble(double *out) {
     if (end == line || (*end != '\n' && *end != '\0')) return 0;
     return 1;
 }
-
-/* KUMPULAN FUNGSI-FUNGSI */
 
 // fungsi untuk menerima input pilihan jenis fungsi (polinomial/euler)
 
@@ -736,12 +736,12 @@ void inputGuessSecant(FunctionConfig *cfg) {
 // atau ea lebih kecil dari 0.0001 (batas ea minimum default)
 
 int shouldContinue(StopCriteria sc, int iter, double ea, double xr) {
-    if (!isfinite(xr) || !isfinite(ea) ||fabs(xr) > 10000.0) { 
+    if (!isfinite(xr) || !isfinite(ea) || fabs(xr) > 10000.0) { 
         return 0; 
     }
-	if (iter > 1 && fabs(ea) < DEFAULT_ES) {
-    	return 0;
-	}
+    if (iter > 1 && fabs(ea) < DEFAULT_ES) {
+        return 0;
+    }
     switch (sc.mode) {
         case ITER: 
             return iter < sc.maxIter;
@@ -838,6 +838,7 @@ double calcTrueErrorRelative(FunctionConfig *cfg, double xr) {
 MethodResult methodBisection(FunctionConfig *cfg, StopCriteria sc) {
     MethodResult res;
     res.count = 0;
+    // alokasi kapasitas awal: dinamis untuk mode EA, tetap untuk mode ITER/BOTH
     if (sc.mode == EA) {
         res.capacity = 10;
     } else {
@@ -850,33 +851,41 @@ MethodResult methodBisection(FunctionConfig *cfg, StopCriteria sc) {
     char eaStr[50] = "init", eaOldStr[50] = "none";
     do {
         xrold = xr;
+        // hitung titik tengah sebagai estimasi akar baru
         xr = (xl + xu) / 2;
         xl_save = xl;
         xu_save = xu;
+        // perbaharui bracket berdasarkan tanda f(xl)*f(xr)
         if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) < 0) {
             xu = xr;
         }
         else if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) > 0) {
             xl = xr;
         }
+        // hitung approximate error (hindari pembagian nol jika xr mendekati nol)
         if (fabs(xr) > 1e-12) {
             ea = fabs((xr - xrold) / xr) * 100;
         }
+        // hitung true error hanya untuk fungsi polinomial karena euler tidak memiliki true root analitik
         if (cfg->funcType == POLYNOMIAL) {
             et = calcTrueErrorRelative(cfg, xr);
         }
+        // deteksi stagnasi: jika ea tidak berubah di tampilan desimal selama 3 iterasi berturut-turut
+        // dan ea masih nonzero, hentikan paksa karena iterasi tidak lagi menghasilkan perubahan bermakna
         snprintf(eaStr, 50, "%.*f", cfg->decimal, ea);
         if (strcmp(eaStr, eaOldStr) == 0 && iter > 2) {
             eaSameCount++;
-            if (eaSameCount > 2) { break; }
+            if (eaSameCount > 2 && fabs(ea) > DEFAULT_ES) { break; }
         } else {
             eaSameCount = 0;
         }
         eaold = ea;
+        // realloc jika kapasitas array penuh
         if (shouldRealloc(&res)) {
             res.capacity *= 2;
             res.rows = realloc(res.rows, res.capacity * sizeof(IterationResult));
         }
+        // simpan hasil iterasi ke array
         iter++;
         res.rows[res.count].iter = iter;
         res.rows[res.count].xl = xl_save;
@@ -898,6 +907,7 @@ MethodResult methodBisection(FunctionConfig *cfg, StopCriteria sc) {
 MethodResult methodFalsePosition(FunctionConfig *cfg, StopCriteria sc) {
     MethodResult res;
     res.count = 0;
+    // alokasi kapasitas awal: dinamis untuk mode EA, tetap untuk mode ITER/BOTH
     if (sc.mode == EA) {
         res.capacity = 10;
     } else {
@@ -910,34 +920,43 @@ MethodResult methodFalsePosition(FunctionConfig *cfg, StopCriteria sc) {
     char eaStr[50] = "init", eaOldStr[50] = "none";
     do {
         xrold = xr;
+        // hentikan jika f(xl) dan f(xu) hampir sama untuk menghindari pembagian nol
         if (fabs(evaluateFunction(cfg, xl) - evaluateFunction(cfg, xu)) < 1e-12) { break; }
+        // hitung estimasi akar baru dengan interpolasi linear antara (xl, f(xl)) dan (xu, f(xu))
         xr = xu - (evaluateFunction(cfg, xu) * (xl - xu) / (evaluateFunction(cfg, xl) - evaluateFunction(cfg, xu)));
         xl_save = xl;
         xu_save = xu;
+        // perbaharui bracket berdasarkan tanda f(xl)*f(xr)
         if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) < 0) {
             xu = xr;
         }
         else if (evaluateFunction(cfg, xl) * evaluateFunction(cfg, xr) > 0) {
             xl = xr;
         }
+        // hitung approximate error (hindari pembagian nol jika xr mendekati nol)
         if (fabs(xr) > 1e-12) {
             ea = fabs((xr - xrold) / xr) * 100;
         }
+        // hitung true error hanya untuk fungsi polinomial karena euler tidak memiliki true root analitik
         if (cfg->funcType == POLYNOMIAL) {
             et = calcTrueErrorRelative(cfg, xr);
         }
+        // deteksi stagnasi: jika ea tidak berubah di tampilan desimal selama 3 iterasi berturut-turut
+        // dan ea masih nonzero, hentikan paksa karena iterasi tidak lagi menghasilkan perubahan bermakna
         snprintf(eaStr, 50, "%.*f", cfg->decimal, ea);
         if (strcmp(eaStr, eaOldStr) == 0 && iter > 2) {
             eaSameCount++;
-            if (eaSameCount > 2) { break; }
+            if (eaSameCount > 2 && fabs(ea) > DEFAULT_ES) { break; }
         } else {
             eaSameCount = 0;
         }
         eaold = ea;
+        // realloc jika kapasitas array penuh
         if (shouldRealloc(&res)) {
             res.capacity *= 2;
             res.rows = realloc(res.rows, res.capacity * sizeof(IterationResult));
         }
+        // simpan hasil iterasi ke array
         iter++;
         res.rows[res.count].iter = iter;
         res.rows[res.count].xl = xl_save;
@@ -959,6 +978,7 @@ MethodResult methodFalsePosition(FunctionConfig *cfg, StopCriteria sc) {
 MethodResult methodNewtonRaphson(FunctionConfig *cfg, StopCriteria sc) {
     MethodResult res;
     res.count = 0;
+    // alokasi kapasitas awal: dinamis untuk mode EA, tetap untuk mode ITER/BOTH
     if (sc.mode == EA) {
         res.capacity = 10;
     } else {
@@ -971,29 +991,37 @@ MethodResult methodNewtonRaphson(FunctionConfig *cfg, StopCriteria sc) {
     char eaStr[50] = "init", eaOldStr[50] = "none";
     do {
         xrold = x;
-        double fx = evaluateFunction(cfg, x);
+        double fx  = evaluateFunction(cfg, x);
         double dfx = evaluateDerivative(cfg, x);
+        // hentikan jika turunan mendekati nol untuk menghindari pembagian nol
         if (fabs(dfx) < 1e-12) { break; }
+        // hitung estimasi akar baru dengan rumus newton-raphson: xr = x - f(x)/f'(x)
         xr = x - (fx / dfx);
         x = xr;
+        // hitung approximate error (hindari pembagian nol jika xr mendekati nol)
         if (fabs(xr) > 1e-12) {
             ea = fabs((xr - xrold) / xr) * 100;
         }
+        // hitung true error hanya untuk fungsi polinomial karena euler tidak memiliki true root analitik
         if (cfg->funcType == POLYNOMIAL) {
             et = calcTrueErrorRelative(cfg, xr);
         }
+        // deteksi stagnasi: jika ea tidak berubah di tampilan desimal selama 3 iterasi berturut-turut
+        // dan ea masih nonzero, hentikan paksa karena iterasi tidak lagi menghasilkan perubahan bermakna
         snprintf(eaStr, 50, "%.*f", cfg->decimal, ea);
         if (strcmp(eaStr, eaOldStr) == 0 && iter > 2) {
             eaSameCount++;
-            if (eaSameCount > 2) { break; }
+            if (eaSameCount > 2 && fabs(ea) > DEFAULT_ES) { break; }
         } else {
             eaSameCount = 0;
         }
         eaold = ea;
+        // realloc jika kapasitas array penuh
         if (shouldRealloc(&res)) {
             res.capacity *= 2;
             res.rows = realloc(res.rows, res.capacity * sizeof(IterationResult));
         }
+        // simpan hasil iterasi ke array
         iter++;
         res.rows[res.count].iter = iter;
         res.rows[res.count].xi = xrold;
@@ -1014,6 +1042,7 @@ MethodResult methodNewtonRaphson(FunctionConfig *cfg, StopCriteria sc) {
 MethodResult methodSecant(FunctionConfig *cfg, StopCriteria sc) {
     MethodResult res;
     res.count = 0;
+    // alokasi kapasitas awal: dinamis untuk mode EA, tetap untuk mode ITER/BOTH
     if (sc.mode == EA) {
         res.capacity = 10;
     } else {
@@ -1026,30 +1055,39 @@ MethodResult methodSecant(FunctionConfig *cfg, StopCriteria sc) {
     char eaStr[50] = "init", eaOldStr[50] = "none";
     do {
         xrold = x1;
+        // hentikan jika f(x0) dan f(x1) hampir sama untuk menghindari pembagian nol
         if (fabs(evaluateFunction(cfg, x0) - evaluateFunction(cfg, x1)) < 1e-12) { break; }
+        // hitung estimasi akar baru dengan rumus secant: interpolasi linear antara dua titik terakhir
         xr = x1 - (evaluateFunction(cfg, x1) * (x0 - x1) / (evaluateFunction(cfg, x0) - evaluateFunction(cfg, x1)));
         xi_1_save = x0;
         xi_save = x1;
+        // geser window: x0 menjadi x1 lama, x1 menjadi xr baru
         x0 = x1;
         x1 = xr;
+        // hitung approximate error (hindari pembagian nol jika xr mendekati nol)
         if (fabs(xr) > 1e-12) {
             ea = fabs((xr - xrold) / xr) * 100;
         }
+        // hitung true error hanya untuk fungsi polinomial karena euler tidak memiliki true root analitik
         if (cfg->funcType == POLYNOMIAL) {
             et = calcTrueErrorRelative(cfg, xr);
         }
+        // deteksi stagnasi: jika ea tidak berubah di tampilan desimal selama 3 iterasi berturut-turut
+        // dan ea masih nonzero, hentikan paksa karena iterasi tidak lagi menghasilkan perubahan bermakna
         snprintf(eaStr, 50, "%.*f", cfg->decimal, ea);
         if (strcmp(eaStr, eaOldStr) == 0 && iter > 2) {
             eaSameCount++;
-            if (eaSameCount > 2) { break; }
+            if (eaSameCount > 2 && fabs(ea) > DEFAULT_ES) { break; }
         } else {
             eaSameCount = 0;
         }
         eaold = ea;
+        // realloc jika kapasitas array penuh
         if (shouldRealloc(&res)) {
             res.capacity *= 2;
             res.rows = realloc(res.rows, res.capacity * sizeof(IterationResult));
         }
+        // simpan hasil iterasi ke array
         iter++;
         res.rows[res.count].iter = iter;
         res.rows[res.count].xi_1 = xi_1_save;
@@ -1131,16 +1169,20 @@ void printAnalysis(FunctionConfig *cfg, MethodResult *res, StopCriteria sc, cons
     IterationResult last = res->rows[res->count - 1];
     double final_f = evaluateFunction(cfg, last.xr);
     if (res->count == 1) {
+        // iterasi pertama langsung memenuhi kriteria berhenti
         printf("※   Analisis    :  ea langsung memenuhi kriteria berhenti pada iterasi pertama.\n");
         printf("    Kesimpulan  :  ");
         sprintf(fmt, "xr konvergen sangat cepat untuk metode %s pada xr = %%.%df dengan ea = %%.%df%%%%.\n\n", methodName, dec, dec);
         printf(fmt, last.xr, last.ea);
         *convStatus = 1;
     } else {
-        IterationResult prev = res->rows[res->count - 2];
+        // ambil dua iterasi terakhir untuk mendeteksi tren ea
+        IterationResult prev  = res->rows[res->count - 2];
         IterationResult prev2 = (res->count >= 3) ? res->rows[res->count - 3] : prev;
-        int converge = (last.ea < prev.ea) && (prev.ea < prev2.ea);
-        int diverge = (last.ea > prev.ea) && (prev.ea > prev2.ea);
+        // konvergen jika ea turun di dua langkah terakhir, divergen jika naik
+        int converge   = (last.ea < prev.ea) && (prev.ea < prev2.ea);
+        int diverge    = (last.ea > prev.ea) && (prev.ea > prev2.ea);
+        // khusus euler: deteksi kasus asimtotik — xr melayang jauh tapi f(xr) tidak mencapai nol
         int isDrifting = (fabs(last.xr) > 20.0 && fabs(final_f) < 1e-4 && final_f > 0 && cfg->funcType == EULER);
         printf("※   Analisis    :  ");
         if (isDrifting) {
@@ -1160,6 +1202,7 @@ void printAnalysis(FunctionConfig *cfg, MethodResult *res, StopCriteria sc, cons
             printf(fmt, last.ea);
             *convStatus = 0;
         } else {
+            // ea tidak menunjukkan tren yang jelas — tidak dapat disimpulkan
             printf("ea tidak konsisten menurun atau menaik.\n");
             printf("    Kesimpulan  :  ");
             printf("Tidak dapat menyimpulkan apabila xr konvergen sangat lambat atau xr divergen untuk metode %s.\n\n", methodName);
@@ -1174,8 +1217,10 @@ void printBisectionFalsePosition(FunctionConfig *cfg, StopCriteria sc, MethodRes
     int dec = cfg->decimal;
     int col = columnWidthIter(res, dec);
     int nCols;
+    // kolom et hanya ditampilkan untuk fungsi polinomial karena euler tidak memiliki true root
     int hasTrue = (cfg->funcType == POLYNOMIAL);
     if (hasTrue) { nCols = 5; } else { nCols = 4; }
+    // print baris header tabel
     printHLine(11, "\U0000250C", "\U0000252C", "\U00002510", "\U00002500", col, nCols);
     printf("\U00002502  Iterasi  \U00002502");
     printCenteredStr("xl", col);
@@ -1187,6 +1232,7 @@ void printBisectionFalsePosition(FunctionConfig *cfg, StopCriteria sc, MethodRes
     }
     printf("\n");
     printHLine(11, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, nCols);
+    // print setiap baris iterasi
     for (int i = 0; i < res->count; i++) {
         char buff[10];
         snprintf(buff, 10, "%d", res->rows[i].iter);
@@ -1200,6 +1246,7 @@ void printBisectionFalsePosition(FunctionConfig *cfg, StopCriteria sc, MethodRes
             printCenteredVal(res->rows[i].et, dec, col);
         }
         printf("\n");
+        // print garis pemisah antar baris kecuali setelah baris terakhir
         if (i < res->count - 1) {
             printHLine(11, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, nCols);
         }
@@ -1213,8 +1260,10 @@ void printNewtonRaphson(FunctionConfig *cfg, StopCriteria sc, MethodResult *res)
     int dec = cfg->decimal;
     int col = columnWidthIter(res, dec);
     int nCols;
+    // kolom et hanya ditampilkan untuk fungsi polinomial karena euler tidak memiliki true root
     int hasTrue = (cfg->funcType == POLYNOMIAL);
     if (hasTrue) { nCols = 4; } else { nCols = 3; }
+    // print baris header tabel
     printHLine(11, "\U0000250C", "\U0000252C", "\U00002510", "\U00002500", col, nCols);
     printf("\U00002502  Iterasi  \U00002502");
     printCenteredStr("xi", col);
@@ -1225,6 +1274,7 @@ void printNewtonRaphson(FunctionConfig *cfg, StopCriteria sc, MethodResult *res)
     }
     printf("\n");
     printHLine(11, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, nCols);
+    // print setiap baris iterasi
     for (int i = 0; i < res->count; i++) {
         char buff[10];
         snprintf(buff, 10, "%d", res->rows[i].iter);
@@ -1237,6 +1287,7 @@ void printNewtonRaphson(FunctionConfig *cfg, StopCriteria sc, MethodResult *res)
             printCenteredVal(res->rows[i].et, dec, col);
         }
         printf("\n");
+        // print garis pemisah antar baris kecuali setelah baris terakhir
         if (i < res->count - 1) {
             printHLine(11, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, nCols);
         }
@@ -1250,8 +1301,10 @@ void printSecant(FunctionConfig *cfg, StopCriteria sc, MethodResult *res) {
     int dec = cfg->decimal;
     int col = columnWidthIter(res, dec);
     int nCols;
+    // kolom et hanya ditampilkan untuk fungsi polinomial karena euler tidak memiliki true root
     int hasTrue = (cfg->funcType == POLYNOMIAL);
     if (hasTrue) { nCols = 5; } else { nCols = 4; }
+    // print baris header tabel
     printHLine(11, "\U0000250C", "\U0000252C", "\U00002510", "\U00002500", col, nCols);
     printf("\U00002502  Iterasi  \U00002502");
     printCenteredStr("xi-1", col);
@@ -1263,6 +1316,7 @@ void printSecant(FunctionConfig *cfg, StopCriteria sc, MethodResult *res) {
     }
     printf("\n");
     printHLine(11, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, nCols);
+    // print setiap baris iterasi
     for (int i = 0; i < res->count; i++) {
         char buff[10];
         snprintf(buff, 10, "%d", res->rows[i].iter);
@@ -1276,6 +1330,7 @@ void printSecant(FunctionConfig *cfg, StopCriteria sc, MethodResult *res) {
             printCenteredVal(res->rows[i].et, dec, col);
         }
         printf("\n");
+        // print garis pemisah antar baris kecuali setelah baris terakhir
         if (i < res->count - 1) {
             printHLine(11, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, nCols);
         }
@@ -1309,12 +1364,15 @@ void printSummaryTable(FunctionConfig *cfg, StopCriteria sc, SummaryEntry summar
     int col = columnWidthSumm(summary, count, dec);
     int nCols;
     char fmt[200];
+    // kolom et hanya ditampilkan untuk fungsi polinomial karena euler tidak memiliki true root
     int hasTrue = (cfg->funcType == POLYNOMIAL);
     if (hasTrue) { nCols = 5; } else { nCols = 4; }
+    // print judul dan informasi kriteria berhenti yang digunakan
     printf("Tabel Kesimpulan Hasil Komputasi Numerik\n\n");
     if (sc.mode == ITER || sc.mode == BOTH) { printf("Iterasi Maksimum : %d\n", sc.maxIter); }
     if (sc.mode == EA || sc.mode == BOTH) { sprintf(fmt, "%%%% Stopping Error : %%g%%%%\n", dec); printf(fmt, sc.stopError); }
     printf("\n");
+    // print baris header tabel
     printHLine(18, "\U0000250C", "\U0000252C", "\U00002510", "\U00002500", col, nCols);
     printf("\U00002502");
     printCenteredStr("Metode", 18);
@@ -1327,6 +1385,7 @@ void printSummaryTable(FunctionConfig *cfg, StopCriteria sc, SummaryEntry summar
     printCenteredStr("Konvergensi", col);
     printf("\n");
     printHLine(18, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, nCols);
+    // print satu baris per metode yang dipilih
     for (int i = 0; i < count; i++) {
         char buff[10];
         sprintf(buff, "%d", summary[i].iterations);
@@ -1352,17 +1411,20 @@ void printSummaryTable(FunctionConfig *cfg, StopCriteria sc, SummaryEntry summar
 
 void printScoringTable(FunctionConfig *cfg, SummaryEntry summary[], int count) {
     int col = 18;
+    // kolom %et hanya ditampilkan untuk fungsi polinomial karena euler tidak memiliki true root
     int hasTrue = (cfg->funcType == POLYNOMIAL);
     char fmt[100];
     int totals[4] = {0};
     printf("Tabel Skoring Metode Komputasi Numerik\n\n");
     printf("※   Konvergen = 1 | Divergen = 0 | Terkecil = %d | Terbesar = 1\n\n", count);
+    // print baris header tabel
     printHLine(23, "\U0000250C", "\U0000252C", "\U00002510", "\U00002500", col, count);
     printf("\U00002502");
     printCenteredStr("Kriteria", 23);
     for(int i = 0; i < count; i++) printCenteredStr(summary[i].name, col);
     printf("\n");
     printHLine(23, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, count);
+    // kriteria 1: positif konvergensi (1 jika konvergen, 0 jika divergen)
     printf("\U00002502");
     printCenteredStr("Positif Konvergensi", 23);
     for(int i = 0; i < count; i++) {
@@ -1372,6 +1434,7 @@ void printScoringTable(FunctionConfig *cfg, SummaryEntry summary[], int count) {
     }
     printf("\n");
     printHLine(23, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, count);
+    // kriteria 2: rank iterasi terkecil (semakin sedikit iterasi semakin tinggi skor)
     printf("\U00002502");
     printCenteredStr("Iterasi Terkecil", 23);
     for(int i = 0; i < count; i++) {
@@ -1385,6 +1448,7 @@ void printScoringTable(FunctionConfig *cfg, SummaryEntry summary[], int count) {
     }
     printf("\n");
     printHLine(23, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, count);
+    // kriteria 3: rank %ea terkecil (semakin kecil ea semakin tinggi skor)
     printf("\U00002502");
     printCenteredStr("%ea Terkecil", 23);
     for(int i = 0; i < count; i++) {
@@ -1397,6 +1461,7 @@ void printScoringTable(FunctionConfig *cfg, SummaryEntry summary[], int count) {
         totals[i] += rank;
     }
     printf("\n");
+    // kriteria 4: rank %et terkecil — hanya untuk polinomial
     if (hasTrue) {
         printHLine(23, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, count);
         printf("\U00002502");
@@ -1412,6 +1477,8 @@ void printScoringTable(FunctionConfig *cfg, SummaryEntry summary[], int count) {
         }
         printf("\n");
     }
+    // hitung total skor dan cari metode terbaik
+    // jika skor sama, metode dengan ea lebih kecil dipilih sebagai pemenang
     printHLine(23, "\U0000251C", "\U0000253C", "\U00002524", "\U00002500", col, count);
     printf("\U00002502");
     printCenteredStr("Total", 23);
@@ -1428,6 +1495,7 @@ void printScoringTable(FunctionConfig *cfg, SummaryEntry summary[], int count) {
     printf("\n");
     printHLine(23, "\U00002514", "\U00002534", "\U00002518", "\U00002500", col, count);
     printf("\n");
+    // print kesimpulan: jika pemenang divergen, pilih metode konvergen dengan skor tertinggi
     if (!summary[bestIdx].convStatus) {
         int foundConverged = 0;
         int bestConvergedIdx = 0;
@@ -1443,11 +1511,142 @@ void printScoringTable(FunctionConfig *cfg, SummaryEntry summary[], int count) {
             printf("※   Kesimpulan  :  Metode %s adalah metode yang memberikan hasil komputasi paling baik dan cocok untuk f(x).\n", summary[bestConvergedIdx].name);
             printf("                   (Metode %s memiliki skor lebih tinggi namun dinyatakan Divergen dan tidak diperhitungkan.)\n\n", summary[bestIdx].name);
         } else {
+            // semua metode divergen
             printf("※   Kesimpulan  :  Tidak ada metode yang berhasil konvergen untuk f(x) ini.\n");
             printf("                   Semua metode yang dipilih divergen atau gagal menemukan akar real.\n\n");
         }
     } else {
         printf("※   Kesimpulan  :  Metode %s adalah metode yang memberikan hasil komputasi paling baik dan cocok untuk f(x).\n\n", summary[bestIdx].name);
+    }
+}
+
+// fungsi untuk menulis data hasil komputasi numerik ke file sim_data.txt,
+// digunakan sebagai jembatan data antara finpro.c dan simulation.exe
+
+void writeSimData(const FunctionConfig *cfg, const StopCriteria *sc, const MethodResult results[4]) {
+    const char *path = "D:/CPP VSC/raylib/sim_data.txt";     
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        printf("※   Peringatan: Gagal menulis sim_data.txt (%s)\n\n", path);
+        return;
+    }
+    // tulis jenis fungsi dan derajat polinomial (jika polinomial)
+    fprintf(f, "FUNCTYPE    %s\n", cfg->funcType == EULER ? "EULER" : "POLY");
+    if (cfg->funcType == POLYNOMIAL) {
+        fprintf(f, "DEGREE      %d\n", (int)cfg->degree);
+    }
+    // ekstrak koefisien keempat variabel a/b/c/d — padding 0 untuk derajat yang lebih rendah
+    double a = 0, b = 0, c = 0, d = 0;
+    switch (cfg->funcType) {
+        case POLYNOMIAL:
+            switch (cfg->degree) {
+                case LINEAR:    a = cfg->param.linear[0];    b = cfg->param.linear[1];    break;
+                case QUADRATIC: a = cfg->param.quadratic[0]; b = cfg->param.quadratic[1];
+                                c = cfg->param.quadratic[2]; break;
+                case CUBIC:     a = cfg->param.cubic[0];     b = cfg->param.cubic[1];
+                                c = cfg->param.cubic[2];     d = cfg->param.cubic[3];     break;
+                default: break;
+            }
+            break;
+        case EULER:
+            a = cfg->param.euler[0]; b = cfg->param.euler[1];
+            c = cfg->param.euler[2]; d = cfg->param.euler[3];
+            break;
+        default: break;
+    }
+    // tulis koefisien, tampilan desimal, metode yang dipilih, dan akar akhir per metode
+    fprintf(f, "COEFFS      %.10f %.10f %.10f %.10f\n", a, b, c, d);
+    fprintf(f, "DECIMAL     %d\n", (int)cfg->decimal);
+    fprintf(f, "METHODS     %d %d %d %d\n",
+        cfg->methodSelected[0], cfg->methodSelected[1],
+        cfg->methodSelected[2], cfg->methodSelected[3]);
+    fprintf(f, "ROOTS       %.10f %.10f %.10f %.10f\n",
+        cfg->methodSelected[0] ? results[0].root : 0.0,
+        cfg->methodSelected[1] ? results[1].root : 0.0,
+        cfg->methodSelected[2] ? results[2].root : 0.0,
+        cfg->methodSelected[3] ? results[3].root : 0.0);
+    // tulis data iterasi per metode — blok tetap ditulis meski n = 0 agar reader seragam
+    {
+        int n = cfg->methodSelected[0] ? results[0].count : 0;
+        fprintf(f, "BISECTION   %d\n", n);
+        for (int i = 0; i < n; i++) {
+            const IterationResult *r = &results[0].rows[i];
+            fprintf(f, "%.10f %.10f %.10f %.10f %.10f\n",
+                r->xl, r->xu, r->xr, r->ea, r->et);
+        }
+    }
+    {
+        int n = cfg->methodSelected[1] ? results[1].count : 0;
+        fprintf(f, "FALSEPOS    %d\n", n);
+        for (int i = 0; i < n; i++) {
+            const IterationResult *r = &results[1].rows[i];
+            fprintf(f, "%.10f %.10f %.10f %.10f %.10f\n",
+                r->xl, r->xu, r->xr, r->ea, r->et);
+        }
+    }
+    {
+        int n = cfg->methodSelected[2] ? results[2].count : 0;
+        fprintf(f, "NEWTON      %d\n", n);
+        for (int i = 0; i < n; i++) {
+            const IterationResult *r = &results[2].rows[i];
+            // newton tidak memiliki xl/xu, hanya xi dan xr
+            fprintf(f, "%.10f %.10f %.10f %.10f\n",
+                r->xi, r->xr, r->ea, r->et);
+        }
+    }
+    {
+        int n = cfg->methodSelected[3] ? results[3].count : 0;
+        fprintf(f, "SECANT      %d\n", n);
+        for (int i = 0; i < n; i++) {
+            const IterationResult *r = &results[3].rows[i];
+            fprintf(f, "%.10f %.10f %.10f %.10f %.10f\n",
+                r->xi_1, r->xi, r->xr, r->ea, r->et);
+        }
+    }
+    fclose(f);
+}
+
+// fungsi untuk menerima input pilihan tampil/tidak tampil grafik simulasi,
+// lalu menulis sim_data.txt dan menjalankan simulation.exe apabila user memilih ya
+
+void inputShowGraph(FunctionConfig *cfg, StopCriteria *sc, MethodResult results[], int index) {
+    int showGraph;
+    printf("Apakah Anda ingin melihat Grafik Simulasi? [ Masukkan Angka 1/0 ]\n\n");
+    printf("[1] Ya\n");
+    printf("[0] Tidak\n\n");
+    do {
+        printf("Pilihan Anda  :  ");
+        while (!scanInt(&showGraph)) {
+            printf("\n");
+            printf("Pilihan Anda tidak valid! Tolong masukkan angka 1/0.\n\n");
+            printf("Pilihan Anda  :  ");
+        }
+        printf("\n");
+        if (showGraph != 0 && showGraph != 1) {
+            printf("Pilihan Anda tidak valid! Tolong masukkan angka 1/0.\n\n");
+        }
+    } while (showGraph != 0 && showGraph != 1);
+
+    if (showGraph == 1 && index > 0) {
+        printf("Membuka Grafik Simulasi...\n\n");
+        // tulis sim_data.txt terlebih dahulu sebelum meluncurkan simulation.exe
+        writeSimData(cfg, sc, results);
+
+        char cmdBuf[512];
+        snprintf(cmdBuf, sizeof(cmdBuf), "\"D:/CPP VSC/raylib/simulation.exe\"");
+
+        // gunakan CreateProcess bukan system() agar stdin finpro tidak dirampas oleh cmd.exe
+        // WaitForSingleObject memblokir finpro hingga jendela simulasi ditutup user
+        STARTUPINFO si = {0};
+        PROCESS_INFORMATION pi = {0};
+        si.cb = sizeof(si);
+        CreateProcess(NULL, cmdBuf, NULL, NULL, FALSE, 0, NULL, "D:/CPP VSC/raylib", &si, &pi);
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        fflush(stdout);
+    } else if (showGraph == 0) {
+        printf("Grafik Simulasi tidak ditampilkan.\n");
     }
 }
 
@@ -1596,6 +1795,10 @@ int main() {
             printf("========================================================================================================================\n\n");
         }
  
+        // tanya user apakah ingin menampilkan simulasi pencarian akar
+        inputShowGraph(&cfg, &sc, results, index);
+        printf("\n========================================================================================================================\n\n");
+
         // tanya user apakah ingin menghitung lagi atau keluar
         inputExitChoice(&cfg);
         printf("========================================================================================================================\n\n");
