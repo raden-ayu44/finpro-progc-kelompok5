@@ -1,14 +1,14 @@
 # 🔢 Kalkulator Root Finding — Polinomial & Euler
-**Final Project Praktikum Pemrograman C — Kelompok 5**
 
-> Program kalkulator pencarian akar (root finding) berbasis terminal yang dibangun menggunakan bahasa C, mendukung fungsi Polinomial (Linier, Kuadratik, Kubik) dan fungsi Euler.
+**Final Project Praktikum Pemrograman C — Kelompok 5**
+> Program kalkulator pencarian akar (root finding) berbasis terminal yang dibangun menggunakan bahasa C, mendukung fungsi Polinomial (Linier, Kuadratik, Kubik) dan fungsi Euler. Dilengkapi visualisasi grafik interaktif menggunakan Raylib.
 
 ---
 
 ## 👥 Anggota Kelompok
 
 | Nama | NPM |
-|------|-----|
+| --- | --- |
 | Raden Ayu Athifah Qurrota'aini | 2406408230 |
 | Annabell Della Sumantri | 2406415040 |
 | Keira Khairani Haqi | 2406419562 |
@@ -19,16 +19,18 @@
 ## 📋 Fitur Program
 
 ### Jenis Fungsi
+
 | Fungsi | Format |
-|--------|--------|
+| --- | --- |
 | Polinomial Linier | `ax + b` |
 | Polinomial Kuadratik | `ax² + bx + c` |
 | Polinomial Kubik | `ax³ + bx² + cx + d` |
 | Euler | `e^(ax+b) + cx + d` |
 
 ### Metode Komputasi Numerik
+
 | Metode | Input yang Dibutuhkan |
-|--------|----------------------|
+| --- | --- |
 | Bisection | xl (lower guess) dan xu (upper guess) |
 | False-Position | xl (lower guess) dan xu (upper guess) |
 | Newton-Raphson | xi (initial guess) |
@@ -37,11 +39,13 @@
 > Bisa memilih lebih dari satu metode sekaligus — program akan membandingkan hasilnya!
 
 ### Mode Berhenti Iterasi
+
 - **Max Iteration** — berhenti saat iterasi ke-N
 - **% Stopping Error** — berhenti saat `%ea < %es`
 - **Keduanya** — berhenti saat salah satunya terpenuhi
 
-### Output
+### Output Terminal
+
 - Tabel iterasi per metode (`xl`, `xu`, `xr`, `ea (%)`, `et (%)`)
 - Analisis konvergensi otomatis per metode
 - True Root analitik untuk fungsi Polinomial (formula Cardano untuk Kubik)
@@ -49,37 +53,70 @@
 - Tabel Skoring Borda Count (jika lebih dari 1 metode dipilih)
 - Kesimpulan metode terbaik dengan disqualifikasi otomatis untuk metode divergen
 
+### Visualisasi Grafik (Raylib)
+
+Setelah output terminal selesai, user dapat memilih untuk membuka jendela grafik interaktif:
+
+- **Slide per metode** — menampilkan kurva `f(x)` beserta konstruksi geometri tiap metode yang dianimasikan per iterasi
+- **Bisection** — visualisasi penyempitan bracket `[xl, xu]` tiap iterasi
+- **False-Position** — tali busur dari `f(xl)` ke `f(xu)` dan persimpangannya di `xr`
+- **Newton-Raphson** — garis tangen di `xi` dan perpotongannya dengan sumbu x sebagai `xr`
+- **Secant** — tali busur dari `f(xi-1)` ke `f(xi)` dan perpotongannya dengan sumbu x sebagai `xr`
+- **Slide rangkuman** *(khusus Polinomial)* — grafik konvergensi `et (%)` vs iterasi semua metode
+
 ---
 
 ## 🚀 Cara Kompilasi & Menjalankan
 
 ### Requirements
-- GCC (atau compiler C apapun yang support C99+)
+
+- GCC (C99+)
 - Terminal dengan dukungan Unicode (untuk tampilan tabel box-drawing)
+- **Raylib** — hanya diperlukan untuk `simulation.exe`
 
-### Kompilasi
-```bash
-gcc -o finpro finpro.c -lm
-```
+### `finpro.exe` — Program Utama (Terminal)
 
-### Jalankan
 ```bash
-./finpro
-```
-
-### Windows
-```bash
-gcc -o finpro.exe finpro.c -lm
+gcc finpro.c -o finpro.exe -lm
 finpro.exe
 ```
 
-> **Tips tampilan tabel:** Pastikan terminal kamu support UTF-8. Di Windows, jalankan `chcp 65001` di Command Prompt sebelum menjalankan program agar karakter box-drawing (`┌─┐│`) tampil dengan benar.
+### `simulation.exe` — Visualisasi Grafik (Raylib)
+
+`simulation.c` memerlukan Raylib yang tersedia di direktori `raylib/`. Kompilasi dilakukan secara terpisah via terminal:
+
+```powershell
+cd "D:/CPP VSC/raylib"
+gcc src/simulation.c -o simulation.exe -I. -L. -lraylib -lopengl32 -lgdi32 -lwinmm
+```
+
+**Struktur direktori yang dibutuhkan:**
+```
+D:/CPP VSC/
+├── finpro.c
+├── finpro.exe
+└── raylib/
+    ├── simulation.exe          ← hasil compile
+    ├── sim_data.txt            ← ditulis oleh finpro.exe saat runtime
+    ├── raylib.h
+    ├── libraylib.a
+    ├── src/
+    │   └── simulation.c
+    └── resources/
+        └── minecraft/
+            └── Minecraft.ttf
+```
+
+> **Urutan penting:** `simulation.exe` harus sudah di-compile sebelum `finpro.exe` dijalankan dan user memilih tampilkan grafik. `finpro.exe` akan memblokir (menunggu) sampai jendela simulasi ditutup sebelum melanjutkan ke `inputExitChoice`.
+
+> **Tips tampilan tabel:** Pastikan terminal support UTF-8. Di Windows, jalankan `chcp 65001` di Command Prompt sebelum menjalankan program agar karakter box-drawing (`┌─┐│`) tampil dengan benar.
 
 ---
 
 ## 🖥️ Contoh Tampilan Terminal
 
 ### Header Program
+
 ```
 ========================================================================================================================
 
@@ -98,6 +135,7 @@ Selamat datang di Kalkulator Root Finding!
 ```
 
 ### Contoh: f(x) = -0.5x² + 2.5x + 4.5 — Bisection, 3 Iterasi
+
 ```
 Fungsi Kuadratik Anda       :  f(x) = -0.500000x^2 + 2.500000x + 4.500000
 True Roots f(x)             :  xt_x1 = -1.405125 | xt_x2 = 6.405125
@@ -122,6 +160,7 @@ Tabel Iterasi Metode Bisection
 ```
 
 ### Contoh: Tabel Skoring (4 Metode)
+
 ```
 Tabel Skoring Metode Komputasi Numerik
 
@@ -132,14 +171,27 @@ Tabel Skoring Metode Komputasi Numerik
 ├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
 │  Positif Konvergensi  │        1         │        1         │        1         │        1         │
 ├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│    Iterasi Terkecil   │        1         │        2         │        4         │        2         │
+│    Iterasi Terkecil   │        4         │        2         │        1         │        2         │
 ├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│      %ea Terkecil     │        2         │        4         │        1         │        3         │
+│      %ea Terkecil     │        4         │        3         │        1         │        2         │
 ├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
-│           Total       │        4         │        7         │        6         │        6         │
+│      %et Terkecil     │        4         │        3         │        1         │        2         │
+├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│           Total       │       13         │        9         │        4         │        7         │
 └───────────────────────┴──────────────────┴──────────────────┴──────────────────┴──────────────────┘
 
-※   Kesimpulan  :  Metode False-Position adalah metode yang memberikan hasil komputasi paling baik dan cocok untuk f(x).
+※   Kesimpulan  :  Metode Newton-Raphson adalah metode yang memberikan hasil komputasi paling baik dan cocok untuk f(x).
+```
+
+### Contoh: Prompt Grafik Simulasi
+
+```
+Apakah Anda ingin melihat Grafik Simulasi? [ Masukkan Angka 1/0 ]
+
+[1] Ya
+[0] Tidak
+
+Pilihan Anda  :  1
 ```
 
 ---
@@ -157,6 +209,7 @@ Program menangani berbagai input tidak valid secara robust:
 - **Division by zero** di semua metode → guard `< 1e-12`, iterasi dihentikan
 - **Overflow / Inf / NaN** → guard `isfinite()` dan `DBL_MAX`
 - **Divergen asimtotik** (NR/Secant pada Euler tanpa root) → terdeteksi dan dilaporkan
+- **`sim_data.txt` gagal dibuat** → pesan peringatan, program tetap lanjut tanpa simulasi
 
 ---
 
@@ -165,7 +218,7 @@ Program menangani berbagai input tidak valid secara robust:
 Saat lebih dari satu metode dipilih, program menampilkan tabel skoring:
 
 | Kriteria | Skor |
-|----------|------|
+| --- | --- |
 | Konvergensi | Konvergen = 1, Divergen = 0 |
 | Iterasi Terkecil | Terkecil = N, Terbesar = 1 |
 | %ea Terkecil | Terkecil = N, Terbesar = 1 |
@@ -179,23 +232,27 @@ Saat lebih dari satu metode dipilih, program menampilkan tabel skoring:
 
 ```
 .
-├── finpro.c                               → Source code utama
+├── finpro.c                               → Source code utama (terminal)
 ├── README.md                              → File ini
 ├── Alur_Program_...md                     → Dokumentasi teknis lengkap
 └── Contoh_Tampilan_Terminal_...md         → Contoh output terminal lengkap
 ```
+
+> `simulation.c` dikelola terpisah di direktori Raylib (`D:/CPP VSC/raylib/src/`) dan tidak di-push ke repo ini karena memerlukan dependency Raylib.
 
 ---
 
 ## 📖 Dokumentasi Teknis
 
 Lihat **`Alur_Program_Kalkulator_Root_Finding_-_Polinomial___Euler.md`** untuk dokumentasi lengkap yang mencakup:
+
 - Penjelasan semua struct, enum, union, dan function pointer
-- Alur lengkap program utama
+- Alur lengkap program utama termasuk integrasi `simulation.exe`
 - Penjelasan setiap fungsi input, validasi, dan edge case
 - Dokumentasi metode numerik dan formula True Root (termasuk Cardano)
 - Penjelasan sistem skoring Borda Count dan logika disqualifikasi
 - Tabel ringkasan semua constraint dan edge case yang ditangani
+- Dokumentasi `simulation.c`: `readSimData`, `calcViewRange`, konstruksi geometri per metode, dan alur rendering
 
 Lihat **`Contoh_Tampilan_Terminal_...md`** untuk melihat contoh output lengkap program untuk berbagai kasus uji.
 
