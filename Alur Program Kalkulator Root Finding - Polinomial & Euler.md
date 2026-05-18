@@ -3,11 +3,6 @@ title: Alur Program Kalkulator Root Finding - Polinomial & Euler
 
 ---
 
----
-title: Alur Program Kalkulator Root Finding - Polinomial & Euler
-
----
-
 # Alur Program Kalkulator Root Finding - Polinomial & Euler
 **Final Project Praktikum Pemrograman C - Kelompok 5**
 
@@ -138,7 +133,7 @@ Membaca satu baris input menggunakan `fgets`, lalu parsing dengan `strtol`:
 
 > **Kenapa `0.1` lolos `scanf("%d")` tapi tidak lolos `scanInt`?** `scanf("%d")` berhenti parsing di `.` dan menganggap `0` sebagai hasil valid, meninggalkan `.1\n` di buffer. `strtol` melakukan hal yang sama, tapi pointer `end` akan menunjuk ke `.` — `*end != '\n' && *end != '\0'` terpenuhi → fungsi mengembalikan 0 (gagal).
 
-**Digunakan oleh**: semua input pilihan integer — `funcType`, `degree`, `decimal`, `method`, `stop`, `maxIter`, `exitChoice`.
+**Digunakan oleh**: semua input pilihan integer — `funcType`, `degree`, `decimal`, `method`, `stop`, `maxIter`, `exitChoice`, `showGraph`.
 
 ### `scanDouble(double *out)`
 Membaca satu baris input menggunakan `fgets`, lalu parsing dengan `strtod`:
@@ -164,7 +159,7 @@ MULAI
 │
 └─ DO-WHILE (exitChoice == CALCULATE)
    │
-   ├─ Reset: cfg = {0}, sc = {BOTH, MAX_ITER, DEFAULT_ES}, memset(summaryList)
+   ├─ Reset: cfg = {0}, sc = {BOTH, MAX_ITER, DEFAULT_ES}, memset(summaryList), memset(results)
    │   → Setiap iterasi loop mulai fresh, tidak ada data sisa dari sesi sebelumnya
    │
    ├─ [1] inputFunctionType → cfg.funcType
@@ -188,7 +183,7 @@ MULAI
    │
    ├─ [9] IF Secant → inputGuessSecant → cfg.xi_1, cfg.xi_sec
    │
-   ├─ [10] Jalankan metode yang dipilih, cetak tabel iterasi + analisis, simpan ke summaryList, free memory
+   ├─ [10] Jalankan metode yang dipilih, cetak tabel iterasi + analisis, simpan ke summaryList
    │   ├─ IF Bisection    → methodBisection     → printBisectionFalsePosition → printAnalysis
    │   ├─ IF False-Pos    → methodFalsePosition → printBisectionFalsePosition → printAnalysis
    │   ├─ IF Newton-Raph  → methodNewtonRaphson → printNewtonRaphson          → printAnalysis
@@ -197,7 +192,12 @@ MULAI
    ├─ [11] printSummaryTable → tabel rangkuman semua metode
    │        IF index > 1 → printScoringTable → tabel skoring Borda Count
    │
-   └─ [12] inputExitChoice → cfg.exitChoice
+   ├─ [12] inputShowGraph → tanya user apakah ingin melihat grafik simulasi
+   │        IF ya → writeSimData → tulis sim_data.txt
+   │              → CreateProcess → jalankan simulation.exe
+   │              → WaitForSingleObject → tunggu simulation.exe selesai
+   │
+   └─ [13] inputExitChoice → cfg.exitChoice
 ```
 
 ---
@@ -270,6 +270,18 @@ Alur:
 - **Constraint:** `xi-1 ≠ xi`
   - Jika sama → pembagi `f(x0) - f(x1)` berpotensi nol → division by zero
 
+### inputShowGraph *(baru)*
+- Input: `1` (Ya) atau `0` (Tidak) menggunakan `scanInt`
+- Hanya ditampilkan setelah setidaknya satu metode dijalankan (`index > 0`)
+- Jika user memilih `1`:
+  1. Panggil `writeSimData` → tulis `sim_data.txt`
+  2. Bangun path `cmdBuf` = `"D:/CPP VSC/raylib/simulation.exe"`
+  3. `CreateProcess` dengan working directory `"D:/CPP VSC/raylib"` → jalankan `simulation.exe`
+  4. `WaitForSingleObject` → `finpro.exe` **memblokir** sampai window simulasi ditutup user
+  5. `CloseHandle` → tutup handle proses dan thread
+  6. `fflush(stdout)` → flush output sebelum lanjut
+- Jika user memilih `0` → tampilkan pesan, lanjut tanpa membuka simulasi
+
 ---
 
 ## 6. EVALUASI FUNGSI
@@ -288,7 +300,7 @@ if (!isfinite(result)) return (result > 0) ? DBL_MAX : -DBL_MAX;
 ```
 Mengembalikan nilai finite terbesar/terkecil dari `<float.h>` agar perhitungan tidak menghasilkan `Inf` atau `NaN`.
 
-**Digunakan oleh**: `inputBracket`, semua metode (dalam loop iterasi), dan `printAnalysis` (untuk deteksi asimtotik).
+**Digunakan oleh**: `inputBracket`, semua metode (dalam loop iterasi), `printAnalysis` (untuk deteksi asimtotik), dan `writeSimData` (tidak langsung — data xr dari metode digunakan oleh `simulation.exe` via `sim_data.txt`).
 
 ### evaluateDerivative
 Menghitung `f'(x)` analitik untuk Newton-Raphson:
@@ -382,6 +394,15 @@ Menghitung `|xt - xr|` untuk polinomial. Mengambil `xt` sesuai derajat dari `cfg
 ### calcTrueErrorRelative
 Menghitung `|xt - xr| / |xt| * 100` untuk polinomial. Hanya dipanggil jika `funcType == POLYNOMIAL`.
 
+### findClosestRoot *(baru)*
+Fungsi helper yang mencari semua akar real polinomial dan mengembalikan akar yang paling dekat dengan `xr` saat ini. Digunakan oleh `calcTrueError` dan `calcTrueErrorRelative`:
+```
+LINEAR    → 1 akar: xt = -b/a
+QUADRATIC → 2 akar: x1, x2 dari rumus ABC → pilih yang |xi - xr| terkecil
+CUBIC     → 1 atau 3 akar (Cardano) → pilih yang |xi - xr| terkecil
+```
+> Menggantikan pendekatan sebelumnya yang hanya menggunakan `xt_quad` (akar terbesar) sebagai pembanding. Dengan `findClosestRoot`, `%et` selalu menggunakan akar yang paling relevan secara geometri terhadap posisi `xr` saat itu.
+
 ### printTrueRootLinear
 ```
 xt = -b / a
@@ -392,7 +413,7 @@ xt = -b / a
 disc = b² - 4ac  (sudah dijamin ≥ 0 dari inputFunctionParameter)
 x1 = (-b + √disc) / 2a
 x2 = (-b - √disc) / 2a
-xt = max(x1, x2)  ← akar terbesar sebagai pembanding
+xt = max(x1, x2)  ← akar terbesar sebagai pembanding awal; findClosestRoot tetap dipakai per iterasi
 ```
 
 ### printTrueRootCubic (Cardano's Formula)
@@ -540,7 +561,277 @@ IF metode skor tertinggi == Divergen
 
 ---
 
-## 12. UNICODE BOX-DRAWING CHARACTERS
+## 12. JEMBATAN DATA: `writeSimData` & `sim_data.txt` *(baru)*
+
+### writeSimData
+Menulis hasil kalkulasi dari `finpro.exe` ke file teks `sim_data.txt` yang kemudian dibaca oleh `simulation.exe`. Format file:
+
+```
+FUNCTYPE    POLY|EULER
+DEGREE      1|2|3                          (hanya jika POLY)
+COEFFS      a b c d                        (10 desimal)
+DECIMAL     4|6|8
+METHODS     bis fp nr sec                  (0 atau 1, 4 angka)
+ROOTS       xr_bis xr_fp xr_nr xr_sec     (10 desimal; 0.0 jika tidak dipilih)
+BISECTION   n
+xl xu xr ea et                             (n baris, 10 desimal)
+FALSEPOS    n
+xl xu xr ea et                             (n baris, 10 desimal)
+NEWTON      n
+xi xr ea et                               (n baris, 10 desimal)
+SECANT      n
+xi-1 xi xr ea et                          (n baris, 10 desimal)
+```
+
+**Kenapa file teks (bukan pipe/socket)?** Karena `simulation.exe` adalah proses terpisah yang di-compile dan dijalankan secara independen dari `finpro.exe`. File teks menjadi format pertukaran yang sederhana, persisten, dan mudah di-debug.
+
+**Path hardcoded:** `"D:/CPP VSC/raylib/sim_data.txt"` — sesuai struktur direktori proyek. Jika file gagal dibuat (misal direktori tidak ada), peringatan dicetak dan simulasi tidak dijalankan.
+
+### Mekanisme Pemanggilan `simulation.exe`
+Menggunakan Windows API `CreateProcess`:
+```c
+snprintf(cmdBuf, sizeof(cmdBuf), "\"D:/CPP VSC/raylib/simulation.exe\"");
+CreateProcess(NULL, cmdBuf, NULL, NULL, FALSE, 0, NULL, "D:/CPP VSC/raylib", &si, &pi);
+WaitForSingleObject(pi.hProcess, INFINITE);
+CloseHandle(pi.hProcess);
+CloseHandle(pi.hThread);
+```
+- Working directory diset ke `"D:/CPP VSC/raylib"` agar `simulation.exe` dapat menemukan `sim_data.txt` dan `resources/` (font) secara relatif
+- `WaitForSingleObject(INFINITE)` menyebabkan `finpro.exe` **memblokir** — user harus menutup window simulasi sebelum program kalkulator lanjut ke pertanyaan keluar/hitung lagi
+- `simulation.exe` harus sudah di-compile sebelumnya secara terpisah (lihat bagian 15)
+
+---
+
+## 13. SIMULASI GRAFIS (`simulation.c` + Raylib) *(baru)*
+
+`simulation.exe` adalah program terpisah yang berjalan menggunakan library **Raylib** untuk menampilkan visualisasi grafis animasi pencarian akar. Program ini membaca `sim_data.txt` yang ditulis oleh `finpro.exe`.
+
+### Struktur Data Simulasi
+
+**`MethodData`** — array data iterasi per metode:
+```
+xl[], xu[], xr[]     → Bisection & False-Position
+xi[], xr_nr[]        → Newton-Raphson
+xm1[], xi_sc[], xr_sc[] → Secant
+et[]                 → true relative error per iterasi (0.0 untuk Euler)
+n                    → jumlah iterasi
+```
+
+**`SimData`** — semua data yang dibaca dari `sim_data.txt`:
+```
+funcType, degree     → jenis fungsi & derajat
+a, b, c, d           → koefisien (float, bukan double)
+decimal              → pengaturan desimal
+methodSelected[4]    → metode yang aktif
+slideRoots[4]        → xr konvergen akhir per metode
+methods[4]           → array MethodData per metode
+```
+
+> **Kenapa float (bukan double)?** Raylib menggunakan `float` untuk koordinat grafis. Presisi double tidak diperlukan untuk rendering visual — konversi dari double di `finpro.c` ke float di `simulation.c` dilakukan saat pembacaan `sim_data.txt` dengan `fscanf("%f", ...)`.
+
+### Fungsi Evaluasi di Simulasi
+
+**`evalF(x, a, b, c, d)`** — menghitung `f(x)` untuk rendering kurva:
+```
+EULER  : expf(a*x + b) + c*x + d
+LINEAR : a*x + b
+QUAD   : a*x² + b*x + c
+CUBIC  : a*x³ + b*x² + c*x + d
+```
+Menggunakan variabel global `g_funcType` dan `g_degree` yang diisi dari `SimData`.
+
+**`evalDF(x, a, b, c)`** — menghitung `f'(x)`, khusus untuk visualisasi garis tangen Newton-Raphson:
+```
+EULER  : a * expf(a*x + b) + c
+LINEAR : a
+QUAD   : 2a*x + b
+CUBIC  : 3a*x² + 2b*x + c
+```
+
+### Sistem Koordinat & Skala Otomatis
+
+**`calcViewRange`** menghitung rentang tampilan grafik secara otomatis:
+1. Scan semua nilai `xl`, `xu`, `xr`, `xi`, `xm1` dari semua metode → cari `lo` (min) dan `hi` (max)
+2. Tambahkan padding 20% di kedua sisi, minimal 0.5 unit
+3. Sample `f(x)` di 200 titik dalam rentang x → cari `ylo` dan `yhi`
+4. Paksa `ylo ≤ 0` dan `yhi ≥ 0` agar sumbu x selalu terlihat
+5. Tambahkan padding 15% vertikal
+6. Hitung `xStep` dan `yStep` yang "rapi" menggunakan pembulatan ke 1/2/5 × 10^n (target ~6 tick per sumbu)
+
+**Makro konversi koordinat** (didefinisikan di `main`):
+```c
+#define SX(x) (gX + (int)(((x) - xMin) / (xMax - xMin) * gW))
+#define SY(y) (gY + gH - (int)(((y) - yMin) / (yMax - yMin) * gH))
+```
+> `SY` dibalik (gY + gH - ...) karena koordinat piksel Y bertambah ke bawah, sedangkan koordinat matematika Y bertambah ke atas.
+
+### Fungsi Grafis Bantu
+
+| Fungsi | Fungsi |
+|--------|--------|
+| `DrawTextMC` | Render teks dengan font kustom (Minecraft.ttf) |
+| `MeasureTextMC` | Ukur lebar teks untuk centering |
+| `iclamp` | Batasi nilai integer ke rentang [lo, hi] |
+| `SetGraphBounds` / `InGraph` | Simpan & cek batas area grafik |
+| `DrawDashedVLine` | Garis vertikal putus-putus (konstruksi geometri) |
+| `DrawDashedHLine` | Garis horizontal putus-putus (NR & Secant) |
+| `DrawLineG` | Garis dengan clipping Cohen-Sutherland |
+| `DrawLineGEx` | Garis tebal dengan clipping Cohen-Sutherland |
+
+**Cohen-Sutherland clipping** digunakan agar garis yang melampaui batas area grafik dipotong secara tepat, bukan sekadar tidak digambar.
+
+### Sistem Slide & Navigasi
+
+```
+Slide 0 ... N-1  → satu slide per metode yang dipilih (sesuai urutan BISECTION → FALSEPOS → NEWTON → SECANT)
+Slide terakhir   → slide rangkuman (hanya POLY, jika > 0 metode dipilih; EULER tidak punya slide ini)
+```
+
+Navigasi menggunakan tombol **PREV** dan **NEXT** di bawah grafik, serta indikator `n / total` di tengah bawah. Saat berpindah slide, animasi direset ke langkah pertama.
+
+### Sistem Animasi per Metode
+
+Setiap slide metode menampilkan animasi step-by-step iterasi:
+```
+animPlaying  → iterasi otomatis setiap animInterval = 0.75 detik
+animStep     → indeks iterasi yang sedang ditampilkan (0 sampai n-1)
+animDone     → True jika semua iterasi sudah ditampilkan
+```
+
+Kontrol:
+- `[SPACE]` atau **klik area grafik** → mulai play
+- `[R]` → reset ke iterasi pertama
+
+Saat animasi berjalan, iterasi-iterasi sebelumnya ditampilkan dengan alpha lebih rendah (efek fade) untuk menunjukkan jejak pergerakan.
+
+### Konstruksi Geometri per Metode
+
+**Bisection:**
+- Garis horizontal menunjukkan bracket `[xl, xu]` di sumbu x
+- Tick kiri-kanan di xl dan xu
+- Rectangle semi-transparan mengisi area bracket
+- Garis vertikal putus-putus dari `xr` ke kurva
+- Label `xl=`, `xu=`, `iter N xr=` di grafik
+
+**False-Position:**
+- Garis chord (tali busur) dari `f(xl)` ke `f(xu)` — perpotongannya dengan sumbu x adalah `xr`
+- Titik lingkaran di `f(xl)` dan `f(xu)`
+- Triangle semi-transparan antara xl, xu, dan xr (area chord)
+- Garis vertikal putus-putus dari `xr` ke kurva
+
+**Newton-Raphson:**
+- Garis tangen di `f(xi)` dengan slope `f'(xi)` — perpotongannya dengan sumbu x adalah `xr`
+- Label slope `f'(xi)=` ditampilkan di dekat garis tangen
+- Garis horizontal putus-putus dari sumbu y ke `f(xi)`
+- Garis vertikal putus-putus dari `xi` ke kurva dan dari `xr` ke sumbu x
+- Label `xi=`, `xi+1=`
+
+**Secant:**
+- Garis chord dari `f(xi-1)` ke `f(xi)` — perpotongannya dengan sumbu x adalah `xr`
+- Perpanjangan garis chord sedikit di luar dua titik untuk visualisasi lebih jelas
+- Garis vertikal & horizontal putus-putus di kedua titik
+- Label `xi-1=`, `xi=`, `xr=`
+
+### Slide Rangkuman (Khusus POLY)
+
+Slide terakhir menampilkan **grafik konvergensi et% vs iterasi** untuk semua metode yang dipilih:
+- Sumbu x: nomor iterasi (1 sampai `iterMax`)
+- Sumbu y: nilai `et (%)` — skala otomatis ke nilai maksimum dengan pembulatan rapi
+- Grid garis horizontal dan vertikal dari nilai tick yang dihitung dengan cara yang sama seperti `calcViewRange`
+- Setiap metode digambar sebagai polyline berwarna dengan titik lingkaran di setiap data point
+- Label sumbu: `"et (%)"` di kiri atas, `"Iteration"` di kanan bawah
+- Judul: `"CONVERGENCE COMPARISON"`
+- Euler tidak memiliki slide ini karena `et = 0` untuk semua iterasi
+
+### Legenda & Warna
+
+| Metode | Warna |
+|--------|-------|
+| Bisection | `RED` |
+| False-Position | `BLUE` |
+| Newton-Raphson | `GREEN` |
+| Secant | `YELLOW` |
+
+Legenda ditampilkan di kanan atas. Metode yang aktif (slide saat ini) ditampilkan dengan warna penuh; metode lainnya tampil abu-abu (`COL_GREY`). Di slide rangkuman, semua metode tampil dengan warna penuh.
+
+### Alur `main` di `simulation.c`
+```
+1. readSimData("sim_data.txt") → isi SimData
+2. Isi variabel global g_funcType, g_degree, g_a, g_b, g_c, g_d
+3. calcViewRange → xMin, xMax, yMin, yMax, xStep, yStep
+4. buildEqText → string persamaan fungsi untuk judul
+5. InitWindow(800, 600) → buka window
+6. LoadFont("resources/minecraft/Minecraft.ttf")
+7. Hitung totalSlides = methodCount + hasSummary
+8. Buat peta slideToMethod[] (metode ke slide)
+
+LOOP (sampai window ditutup):
+├─ Baca input: navigasi PREV/NEXT, SPACE/klik play, R reset
+├─ Update animStep berdasarkan animTimer
+├─ BeginDrawing / ClearBackground(BLACK)
+├─ Render judul, persamaan fungsi, legenda
+├─ Render kotak area grafik
+├─ IF slide metode: render sumbu, tick, kurva f(x), konstruksi geometri, titik root, hint
+├─ IF slide rangkuman: render grid, plot et% per metode
+├─ Render tombol PREV/NEXT, indikator slide
+└─ EndDrawing
+
+9. UnloadFont, CloseWindow, freeSimData
+```
+
+---
+
+## 14. CARA COMPILE DAN JALANKAN
+
+Program terdiri dari **dua executable terpisah** yang dikompilasi dengan cara berbeda:
+
+### `finpro.exe` — dikompilasi dengan tombol debug/compile/run di IDE (VS Code / GCC)
+- Tidak memerlukan library eksternal selain library standar C dan Windows API (`windows.h`)
+- Cukup tekan tombol Run/Build di IDE, atau:
+  ```
+  gcc finpro.c -o finpro.exe -lm
+  ```
+
+### `simulation.exe` — dikompilasi secara manual via terminal
+`simulation.c` memerlukan **Raylib** yang harus sudah tersedia di `D:/CPP VSC/raylib/`. Langkah kompilasi:
+
+```powershell
+# Masuk ke direktori raylib
+cd "D:/CPP VSC/raylib"
+
+# Compile dengan linking library Raylib dan Windows
+gcc src/simulation.c -o simulation.exe -I. -L. -lraylib -lopengl32 -lgdi32 -lwinmm
+```
+
+Setelah perintah selesai, prompt berubah dari:
+```
+PS D:\CPP VSC>
+```
+menjadi:
+```
+PS D:\CPP VSC\raylib>
+```
+dan file `simulation.exe` tersedia di `D:/CPP VSC/raylib/`.
+
+**Struktur direktori yang dibutuhkan:**
+```
+D:/CPP VSC/raylib/
+├── simulation.exe          ← hasil compile
+├── sim_data.txt            ← ditulis oleh finpro.exe saat runtime
+├── raylib.h                ← header Raylib (-I.)
+├── libraylib.a             ← static library Raylib (-L. -lraylib)
+├── src/
+│   └── simulation.c
+└── resources/
+    └── minecraft/
+        └── Minecraft.ttf   ← font kustom yang diload simulation.exe
+```
+
+> **Urutan penting:** `simulation.exe` harus sudah ada sebelum `finpro.exe` dijalankan dan user memilih tampilkan grafik. Jika belum di-compile, `CreateProcess` akan gagal (tanpa pesan error eksplisit ke user, jadi pastikan compile terlebih dahulu).
+
+---
+
+## 15. UNICODE BOX-DRAWING CHARACTERS
 
 | Karakter | Unicode | Posisi |
 |----------|---------|--------|
@@ -558,8 +849,9 @@ IF metode skor tertinggi == Divergen
 
 ---
 
-## 13. MEMORY MANAGEMENT
+## 16. MEMORY MANAGEMENT
 
+### finpro.c
 Setiap `MethodResult` menggunakan `malloc` untuk `rows[]`. Setelah tabel dicetak dan data disalin ke `summaryList`, memory dibebaskan:
 ```c
 free(resBisection.rows);
@@ -574,9 +866,12 @@ free(resSecant.rows);
 memset(summaryList, 0, sizeof(summaryList));
 ```
 
+### simulation.c
+`SimData` menggunakan `malloc` untuk setiap array per metode (xl, xu, xr, xi, xr_nr, xm1, xi_sc, xr_sc, et). Dibebaskan di akhir program oleh `freeSimData(&sd)` sebelum `return 0`.
+
 ---
 
-## 14. RINGKASAN CONSTRAINT & EDGE CASE
+## 17. RINGKASAN CONSTRAINT & EDGE CASE
 
 | Constraint / Edge Case | Lokasi | Alasan |
 |------------------------|--------|--------|
@@ -601,7 +896,11 @@ memset(summaryList, 0, sizeof(summaryList));
 | `pick ≤ 9` di pilihan metode | `inputRootMethods` | Maksimum 9 kali toggle (4 metode × 2 + 1 ekstra) |
 | `count == 1` di analisis | `printAnalysis` | Konvergen sangat cepat di iterasi pertama → tidak bisa bandingkan tren ea |
 | Disqualifikasi Divergen di skoring | `printScoringTable` | Metode Divergen tidak layak dinyatakan terbaik meskipun skor Borda lebih tinggi |
+| Path hardcoded `simulation.exe` | `inputShowGraph` | Windows API `CreateProcess` memerlukan path absolut; working directory Raylib harus tepat |
+| `sim_data.txt` gagal dibuat | `writeSimData` | Cetak peringatan, simulasi tidak dijalankan, program tetap lanjut |
+| `SY` dibalik di simulation.c | `main` (makro) | Koordinat piksel Y bertambah ke bawah, koordinat matematis Y ke atas |
+| Float bukan double di SimData | `simulation.c` | Raylib menggunakan float; presisi double tidak diperlukan untuk rendering grafis |
 
 ---
 
-*Dokumen ini dibuat berdasarkan kode sumber `finpro.c` — Program Kalkulator Root Finding Polinomial & Euler, Final Project Praktikum Pemrograman C, Kelompok 5.*
+*Dokumen ini dibuat berdasarkan kode sumber `finpro.c` dan `simulation.c` — Program Kalkulator Root Finding Polinomial & Euler, Final Project Praktikum Pemrograman C, Kelompok 5.*
