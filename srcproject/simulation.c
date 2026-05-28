@@ -423,7 +423,7 @@ int main(void) {
     const int W = 800, H = 600;
     InitWindow(W, H, "Root Finding Simulation");
     SetTargetFPS(60);
-    Font font = LoadFont("resources/minecraft/Minecraft.ttf");
+    Font font = LoadFont("resources/Minecraft.ttf");
 
     int gX = 50, gY = 129, gW = 700, gH = 400;
     SetGraphBounds(gX, gY, gW, gH);
