@@ -209,14 +209,35 @@ Saat lebih dari satu metode dipilih, program menampilkan tabel skoring:
 
 ---
 
-## 📁 Struktur File
+## 📁 Struktur Repository
 
 ```
-.
-├── finpro.c                               → Source code utama (terminal)
-├── README.md                              → File ini
-├── Alur_Program_...md                     → Dokumentasi teknis lengkap
-└── Contoh_Tampilan_Terminal_...md         → Contoh output terminal lengkap
+finpro-progc-kelompok5/
+├── raylib/src                     # file raylib yang dibutuhkan untuk program (library, dll)
+│   ├── librarylib.a      
+│   ├── raylib.h
+│   ├── raymath.h                 
+├── resources/
+│   ├── Minecraft.ttf              # font untuk tampilan grafik simulation.exe                          
+├── srcproject/                    # kumpulan file .c untuk bagian-bagian program dan header file .h nya masing-masing       
+│   ├── evaluate.c       
+│   ├── evaluate.h       
+│   ├── finpro.c        
+│   ├── finpro.h
+│   ├── input.c         
+│   ├── input.h
+│   ├── methods.c       
+│   ├── methods.h
+│   ├── output.c       
+│   ├── output.h
+│   ├── simdata.c       
+│   ├── simdata.h      
+│   └── simulation.c  
+├── Alur Program Kalkulator Root Finding - Polinomial & Euler.md                       # penjelasan teknis alur program
+├── Contoh Tampilan Terminal Program Kalkulator Root Finding - Polinomial & Euler.md   # dokumentasi output program
+├── finpro.exe                     # file .exe program utama berjalan
+├── sim_data.txt                   # file penulisan data dari program utama untuk pembuatan grafik oleh raylib
+└── simulation.exe                 # file .exe untuk pembuatan grafik oleh raylib
 ```
 
 > `simulation.c` dikelola terpisah di direktori Raylib (`D:/CPP VSC/raylib/src/`) dan tidak di-push ke repo ini karena memerlukan dependency Raylib.
