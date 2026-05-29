@@ -240,7 +240,6 @@ finpro-progc-kelompok5/
 └── simulation.exe                 # file .exe untuk pembuatan grafik oleh raylib
 ```
 
-> `simulation.c` dikelola terpisah di direktori Raylib (`D:/CPP VSC/raylib/src/`) dan tidak di-push ke repo ini karena memerlukan dependency Raylib.
 
 ---
 
