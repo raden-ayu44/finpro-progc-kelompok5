@@ -71,45 +71,26 @@ Setelah output terminal selesai, user dapat memilih untuk membuka jendela grafik
 ### Requirements
 
 - GCC (C99+)
-- Terminal dengan dukungan Unicode (untuk tampilan tabel box-drawing)
-- **Raylib** — hanya diperlukan untuk `simulation.exe`
+- Terminal dengan dukungan Unicode (untuk tampilan tabel box-drawing) [program sudah ter-include kode untuk otomatis mengatur tulisan di terminal menjadi Unicode]
+- **Raylib** — hanya diperlukan untuk `simulation.exe` [file penting Raylib untuk menjalankan program sudah tersedia di repository]
 
 ### `finpro.exe` — Program Utama (Terminal)
+Untuk meng-compile:
+```bash
+gcc srcproject/finpro.c srcproject/input.c srcproject/evaluate.c srcproject/methods.c srcproject/output.c srcproject/simdata.c -o finpro.exe -lm
+```
 
 ```bash
-gcc finpro.c -o finpro.exe -lm
-finpro.exe
+.\finpro.exe
 ```
 
 ### `simulation.exe` — Visualisasi Grafik (Raylib)
-
-`simulation.c` memerlukan Raylib yang tersedia di direktori `raylib/`. Kompilasi dilakukan secara terpisah via terminal:
-
-```powershell
-cd "D:/CPP VSC/raylib"
-gcc src/simulation.c -o simulation.exe -I. -L. -lraylib -lopengl32 -lgdi32 -lwinmm
-```
-
-**Struktur direktori yang dibutuhkan:**
-```
-D:/CPP VSC/
-├── finpro.c
-├── finpro.exe
-└── raylib/
-    ├── simulation.exe          ← hasil compile
-    ├── sim_data.txt            ← ditulis oleh finpro.exe saat runtime
-    ├── raylib.h
-    ├── libraylib.a
-    ├── src/
-    │   └── simulation.c
-    └── resources/
-        └── minecraft/
-            └── Minecraft.ttf
+Untuk mengcompile:
+```bash
+gcc srcproject/simulation.c -o simulation.exe -Iraylib/src -Lraylib/src -lraylib -lopengl32 -lgdi32 -lwinmm -lws2_32 -lole32 -luuid -lshlwapi
 ```
 
 > **Urutan penting:** `simulation.exe` harus sudah di-compile sebelum `finpro.exe` dijalankan dan user memilih tampilkan grafik. `finpro.exe` akan memblokir (menunggu) sampai jendela simulasi ditutup sebelum melanjutkan ke `inputExitChoice`.
-
-> **Tips tampilan tabel:** Pastikan terminal support UTF-8. Di Windows, jalankan `chcp 65001` di Command Prompt sebelum menjalankan program agar karakter box-drawing (`┌─┐│`) tampil dengan benar.
 
 ---
 
