@@ -1,18 +1,17 @@
 # 🧮 Kalkulator Root Finding — Polinomial & Euler
 
-> **Final Project Praktikum Pemrograman C**
-> Program konsol berbasis C untuk mencari akar fungsi polinomial (linier, kuadratik, kubik) dan fungsi Euler menggunakan empat metode komputasi numerik, dilengkapi visualisasi grafis animasi interaktif berbasis Raylib.
+> **Final Project Praktikum Pemrograman C** — Program konsol berbasis C untuk mencari akar fungsi polinomial (linier, kuadratik, kubik) dan fungsi Euler menggunakan empat metode komputasi numerik, dilengkapi visualisasi grafis animasi interaktif berbasis Raylib.
 
 ---
 
 ## 👥 Kelompok 5
 
-| Nama | NPM |
-|------|-----|
+| Nama                           | NPM        |
+| ------------------------------ | ---------- |
 | Raden Ayu Athifah Qurrota'aini | 2406408230 |
-| Annabell Della Sumantri | 2406415040 |
-| Keira Khairani Haqi | 2406419562 |
-| Dwidra Audric Farras | 2406426265 |
+| Annabell Della Sumantri        | 2406415040 |
+| Keira Khairani Haqi            | 2406419562 |
+| Dwidra Audric Farras           | 2406426265 |
 
 ---
 
@@ -72,29 +71,23 @@ Setelah kalkulasi selesai, program dapat membuka jendela simulasi animasi grafis
 
 **Bisection** — Iterasi 1 (bracket [0, 1], xr = 0.5) dan iterasi akhir (konvergen di xr ≈ 0.365):
 
-![Bisection Iter 1](bisection_iter1.png)
-![Bisection Final](bisection_final.png)
+[![Bisection Iter 1](docs/screenshots/bisection_iter1.png)](docs/screenshots/bisection_iter1.png) [![Bisection Final](docs/screenshots/bisection_final.png)](docs/screenshots/bisection_final.png)
 
 **False-Position** — Iterasi 1 (chord dari f(xl) ke f(xu)) dan iterasi akhir (konvergen di xr ≈ 0.365):
 
-![False-Position Iter 1](falsepos_iter1.png)
-![False-Position Final](falsepos_final.png)
+[![False-Position Iter 1](docs/screenshots/falsepos_iter1.png)](docs/screenshots/falsepos_iter1.png) [![False-Position Final](docs/screenshots/falsepos_final.png)](docs/screenshots/falsepos_final.png)
 
 **Newton-Raphson** — Iterasi 1 (garis tangen di xi=0, slope=17.70) dan iterasi akhir (konvergen dalam 4 iterasi):
 
-![Newton-Raphson Iter 1](newton_iter1.png)
-![Newton-Raphson Final](newton_final.png)
+[![Newton-Raphson Iter 1](docs/screenshots/newton_iter1.png)](docs/screenshots/newton_iter1.png) [![Newton-Raphson Final](docs/screenshots/newton_final.png)](docs/screenshots/newton_final.png)
 
 **Secant** — Iterasi 1 (chord antara xi-1=0 dan xi=1) dan iterasi akhir (konvergen di xr ≈ 0.365):
 
-![Secant Iter 1](secant_iter1.png)
-![Secant Final](secant_final.png)
+[![Secant Iter 1](docs/screenshots/secant_iter1.png)](docs/screenshots/secant_iter1.png) [![Secant Final](docs/screenshots/secant_final.png)](docs/screenshots/secant_final.png)
 
 **Convergence Comparison** — Grafik et% vs iterasi untuk semua metode (khusus polinomial):
 
-![Convergence Comparison](convergence.png)
-
-
+[![Convergence Comparison](docs/screenshots/convergence.png)](docs/screenshots/convergence.png)
 
 ---
 
@@ -118,7 +111,8 @@ finpro-progc-kelompok5/
 ├── resources/
 │   └── minecraft/
 │       └── Minecraft.ttf         ← font kustom untuk simulation.exe
-│   └── screenshots/              ← screenshot untuk README (isi manual)
+├── docs/
+│   └── screenshots/              ← screenshot grafik simulasi
 └── README.md
 ```
 
@@ -132,7 +126,7 @@ Program terdiri dari **dua executable terpisah**.
 
 Tidak memerlukan library eksternal selain C standar dan Windows API.
 
-```powershell
+```
 # Dari direktori srcproject/
 gcc finpro.c evaluate.c input.c methods.c output.c simdata.c -o finpro.exe -lm
 ```
@@ -143,7 +137,7 @@ Atau gunakan tombol **Run / Build** di IDE (VS Code dengan ekstensi C/C++, Code:
 
 Memerlukan Raylib yang tersedia di `raylib/src/`.
 
-```powershell
+```
 # Dari direktori srcproject/
 gcc simulation.c -o simulation.exe -I../raylib/src -L../raylib/src -lraylib -lopengl32 -lgdi32 -lwinmm
 ```
@@ -170,17 +164,17 @@ Saat dijalankan, semua file berikut harus berada di direktori kerja yang sama:
 
 Jalankan `finpro.exe`, lalu ikuti prompt secara berurutan:
 
-| Langkah | Pilihan |
-|---------|---------|
-| **Jenis fungsi** | `1` Polinomial / `2` Euler |
-| **Derajat polinomial** | `1` Linier / `2` Kuadratik / `3` Kubik *(khusus polinomial)* |
-| **Tampilan desimal** | `4` / `6` / `8` angka desimal |
-| **Koefisien fungsi** | Input nilai a, b, c, d sesuai jenis fungsi |
-| **Metode** | Toggle `1`–`4` (bisa lebih dari satu), `0` untuk selesai |
-| **Mode berhenti** | `1` Max Iter / `2` %ea / `3` Keduanya |
-| **Bracket / initial guess** | Sesuai metode yang dipilih |
-| **Grafik simulasi** | `1` Ya (buka `simulation.exe`) / `0` Tidak |
-| **Lanjut / keluar** | `1` Hitung lagi / `0` Keluar |
+| Langkah                     | Pilihan                                                       |
+| --------------------------- | ------------------------------------------------------------- |
+| **Jenis fungsi**            | `1` Polinomial / `2` Euler                                    |
+| **Derajat polinomial**      | `1` Linier / `2` Kuadratik / `3` Kubik *(khusus polinomial)* |
+| **Tampilan desimal**        | `4` / `6` / `8` angka desimal                                 |
+| **Koefisien fungsi**        | Input nilai a, b, c, d sesuai jenis fungsi                    |
+| **Metode**                  | Toggle `1`–`4` (bisa lebih dari satu), `0` untuk selesai      |
+| **Mode berhenti**           | `1` Max Iter / `2` %ea / `3` Keduanya                         |
+| **Bracket / initial guess** | Sesuai metode yang dipilih                                    |
+| **Grafik simulasi**         | `1` Ya (buka `simulation.exe`) / `0` Tidak                    |
+| **Lanjut / keluar**         | `1` Hitung lagi / `0` Keluar                                  |
 
 ### Contoh Sesi
 
@@ -203,6 +197,7 @@ Bracket: xl=0, xu=1  |  xi (NR)=0  |  xi-1=0, xi=1 (Secant)
 ## 🔢 Metode Numerik
 
 ### Bisection
+
 Membagi interval `[xl, xu]` menjadi dua di setiap iterasi. Paling lambat konvergen namun paling stabil — dijamin konvergen selama IVT terpenuhi.
 
 ```
@@ -210,6 +205,7 @@ xr = (xl + xu) / 2
 ```
 
 ### False-Position (Regula Falsi)
+
 Menggunakan interpolasi linear (chord) antara `f(xl)` dan `f(xu)`. Lebih cepat dari Bisection namun masih memerlukan bracket valid.
 
 ```
@@ -217,6 +213,7 @@ xr = xu - f(xu) * (xl - xu) / (f(xl) - f(xu))
 ```
 
 ### Newton-Raphson
+
 Menggunakan garis tangen `f'(xi)` untuk memperkirakan akar berikutnya. Sangat cepat konvergen (konvergensi kuadratik) namun memerlukan turunan analitik.
 
 ```
@@ -224,6 +221,7 @@ xr = xi - f(xi) / f'(xi)
 ```
 
 ### Secant
+
 Dua titik awal sebagai pengganti turunan. Hampir secepat Newton-Raphson tanpa memerlukan `f'(x)`.
 
 ```
@@ -236,12 +234,12 @@ xr = xi - f(xi) * (xi-1 - xi) / (f(xi-1) - f(xi))
 
 Jika lebih dari satu metode dipilih, program menampilkan tabel skoring Borda Count:
 
-| Kriteria | Skor |
-|----------|------|
-| Positif Konvergensi | Konvergen = 1, Divergen = 0 |
-| Iterasi terkecil | Terkecil = N, Terbesar = 1 |
-| %ea terkecil | Terkecil = N, Terbesar = 1 |
-| %et terkecil | Terkecil = N, Terbesar = 1 *(hanya polinomial)* |
+| Kriteria            | Skor                                            |
+| ------------------- | ----------------------------------------------- |
+| Positif Konvergensi | Konvergen = 1, Divergen = 0                     |
+| Iterasi terkecil    | Terkecil = N, Terbesar = 1                      |
+| %ea terkecil        | Terkecil = N, Terbesar = 1                      |
+| %et terkecil        | Terkecil = N, Terbesar = 1 *(hanya polinomial)* |
 
 Metode dengan status **Divergen** didisqualifikasi dari kesimpulan akhir meskipun skor Borda-nya lebih tinggi.
 
@@ -255,12 +253,12 @@ Setelah kalkulasi selesai, user dapat memilih untuk membuka jendela grafik simul
 - **Animasi:** `[SPACE]` atau klik area grafik untuk memulai; `[R]` untuk reset ke iterasi pertama
 - **Iterasi sebelumnya** ditampilkan dengan opacity lebih rendah (efek fade) untuk menunjukkan jejak pergerakan
 
-| Metode | Warna | Visualisasi Geometri |
-|--------|-------|----------------------|
-| Bisection | 🔴 Merah | Bracket `[xl, xu]`, area semi-transparan, titik tengah xr |
-| False-Position | 🔵 Biru | Garis chord dari `f(xl)` ke `f(xu)`, area segitiga |
-| Newton-Raphson | 🟢 Hijau | Garis tangen di `f(xi)`, label slope `f'(xi)` |
-| Secant | 🟡 Kuning | Garis chord antara dua titik terakhir, perpanjangan garis |
+| Metode         | Warna     | Visualisasi Geometri                                       |
+| -------------- | --------- | ---------------------------------------------------------- |
+| Bisection      | 🔴 Merah  | Bracket `[xl, xu]`, area semi-transparan, titik tengah xr  |
+| False-Position | 🔵 Biru   | Garis chord dari `f(xl)` ke `f(xu)`, area segitiga         |
+| Newton-Raphson | 🟢 Hijau  | Garis tangen di `f(xi)`, label slope `f'(xi)`              |
+| Secant         | 🟡 Kuning | Garis chord antara dua titik terakhir, perpanjangan garis  |
 
 Slide terakhir (khusus polinomial) menampilkan **grafik konvergensi** — plot et% vs iterasi untuk semua metode sekaligus dalam satu grafik.
 
@@ -268,25 +266,25 @@ Slide terakhir (khusus polinomial) menampilkan **grafik konvergensi** — plot e
 
 ## ⚠️ Batasan & Edge Case
 
-| Kondisi | Penanganan |
-|---------|------------|
-| `a = 0` pada semua fungsi | Ditolak — bukan fungsi derajat tersebut |
-| Diskriminan `< 0` pada kuadratik | Ditolak — akar imajiner tidak dapat dicari |
-| `f(xl) * f(xu) > 0` pada bracket | Ditolak — IVT tidak terpenuhi |
-| `\|f'(xi)\| < 1e-10` pada Newton-Raphson | Ditolak — turunan nol menyebabkan division by zero |
-| `xi-1 = xi` pada Secant | Ditolak — pembagi nol |
-| Fungsi Euler always-positive (`c=0, d≥0`) | Bisection & False-Position dinonaktifkan otomatis |
-| `\|xr\| > 10000` selama iterasi | Iterasi dihentikan paksa (divergen ekstrem) |
+| Kondisi                                   | Penanganan                                         |
+| ----------------------------------------- | -------------------------------------------------- |
+| `a = 0` pada semua fungsi                 | Ditolak — bukan fungsi derajat tersebut            |
+| Diskriminan `< 0` pada kuadratik          | Ditolak — akar imajiner tidak dapat dicari         |
+| `f(xl) * f(xu) > 0` pada bracket         | Ditolak — IVT tidak terpenuhi                      |
+| `|f'(xi)| < 1e-10` pada Newton-Raphson   | Ditolak — turunan nol menyebabkan division by zero |
+| `xi-1 = xi` pada Secant                  | Ditolak — pembagi nol                              |
+| Fungsi Euler always-positive (`c=0, d≥0`) | Bisection & False-Position dinonaktifkan otomatis  |
+| `|xr| > 10000` selama iterasi            | Iterasi dihentikan paksa (divergen ekstrem)        |
 
 ---
 
 ## 📋 Dependensi
 
-| Komponen | Versi | Keterangan |
-|----------|-------|------------|
-| GCC | ≥ 9.0 | Compiler C (C11+) |
-| Raylib | 6.0 | Hanya untuk `simulation.exe` |
-| Windows API (`windows.h`) | — | `CreateProcess`, `SetConsoleOutputCP` |
+| Komponen                  | Versi | Keterangan                            |
+| ------------------------- | ----- | ------------------------------------- |
+| GCC                       | ≥ 9.0 | Compiler C (C11+)                     |
+| Raylib                    | 6.0   | Hanya untuk `simulation.exe`          |
+| Windows API (`windows.h`) | —     | `CreateProcess`, `SetConsoleOutputCP` |
 
 > Program hanya berjalan di **Windows** karena menggunakan `windows.h`. Raylib hanya dibutuhkan untuk mengkompilasi `simulation.c` — `finpro.exe` tidak memerlukan Raylib.
 
