@@ -120,43 +120,50 @@ finpro-progc-kelompok5/
 
 ## ⚙️ Cara Compile & Menjalankan
 
-Program terdiri dari **dua executable terpisah**.
+> **⚠️ Windows Only** — Program menggunakan `windows.h` (`CreateProcess`, `SetConsoleOutputCP`) dan hanya berjalan di Windows.
 
-### 1. `finpro.exe` — Program Utama (Konsol)
+Semua perintah dijalankan dari **root direktori repo** hasil clone.
 
-Tidak memerlukan library eksternal selain C standar dan Windows API.
-
-```
-# Dari direktori srcproject/
-gcc finpro.c evaluate.c input.c methods.c output.c simdata.c -o finpro.exe -lm
-```
-
-Atau gunakan tombol **Run / Build** di IDE (VS Code dengan ekstensi C/C++, Code::Blocks, dll.).
-
-### 2. `simulation.exe` — Grafik Simulasi (Raylib)
-
-Memerlukan Raylib yang tersedia di `raylib/src/`.
+### 0. Clone Repo
 
 ```
-# Dari direktori srcproject/
-gcc simulation.c -o simulation.exe -I../raylib/src -L../raylib/src -lraylib -lopengl32 -lgdi32 -lwinmm
+git clone https://github.com/raden-ayu44/finpro-progc-kelompok5.git
+cd finpro-progc-kelompok5
 ```
 
-### 3. Struktur Runtime
-
-Saat dijalankan, semua file berikut harus berada di direktori kerja yang sama:
+### 1. Compile `finpro.exe` — Program Utama (Konsol)
 
 ```
-[direktori kerja]/
-├── finpro.exe
-├── simulation.exe      ← harus sudah di-compile sebelum menjalankan finpro.exe
-├── sim_data.txt        ← ditulis otomatis oleh finpro.exe saat runtime
+gcc srcproject/finpro.c srcproject/input.c srcproject/evaluate.c srcproject/methods.c srcproject/output.c srcproject/simdata.c -o finpro.exe -lm
+```
+
+### 2. Compile `simulation.exe` — Grafik Simulasi (Raylib)
+
+```
+gcc srcproject/simulation.c -o simulation.exe -Iraylib/src -Lraylib/src -lraylib -lopengl32 -lgdi32 -lwinmm -lws2_32 -lole32 -luuid -lshlwapi
+```
+
+> `simulation.exe` harus di-compile **sebelum** menjalankan `finpro.exe`. Jika belum ada, opsi "Tampilkan Grafik Simulasi" akan gagal.
+
+### 3. Jalankan Program
+
+```
+.\finpro.exe
+```
+
+### Struktur setelah compile
+
+```
+finpro-progc-kelompok5/   ← root repo (jalankan semua perintah di sini)
+├── finpro.exe            ← hasil compile step 1
+├── simulation.exe        ← hasil compile step 2
+├── sim_data.txt          ← ditulis otomatis saat runtime
+├── srcproject/
+├── raylib/
 └── resources/
     └── minecraft/
         └── Minecraft.ttf
 ```
-
-> **Penting:** `simulation.exe` harus sudah di-compile terlebih dahulu. Jika belum ada, opsi "Tampilkan Grafik Simulasi" akan gagal tanpa pesan error eksplisit.
 
 ---
 
@@ -286,7 +293,7 @@ Slide terakhir (khusus polinomial) menampilkan **grafik konvergensi** — plot e
 | Raylib                    | 6.0   | Hanya untuk `simulation.exe`          |
 | Windows API (`windows.h`) | —     | `CreateProcess`, `SetConsoleOutputCP` |
 
-> Program hanya berjalan di **Windows** karena menggunakan `windows.h`. Raylib hanya dibutuhkan untuk mengkompilasi `simulation.c` — `finpro.exe` tidak memerlukan Raylib.
+> Raylib hanya dibutuhkan untuk mengkompilasi `simulation.c` — `finpro.exe` tidak memerlukannya.
 
 ---
 
