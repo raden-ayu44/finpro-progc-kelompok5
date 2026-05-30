@@ -309,10 +309,10 @@ Slide terakhir (khusus polinomial) menampilkan **grafik konvergensi** — plot e
 | `a = 0` pada semua fungsi                 | Ditolak — bukan fungsi derajat tersebut            |
 | Diskriminan `< 0` pada kuadratik          | Ditolak — akar imajiner tidak dapat dicari         |
 | `f(xl) * f(xu) > 0` pada bracket         | Ditolak — IVT tidak terpenuhi                      |
-| `|f'(xi)| < 1e-10` pada Newton-Raphson   | Ditolak — turunan nol menyebabkan division by zero |
+| `\|f'(xi)\| < 1e-10` pada Newton-Raphson   | Ditolak — turunan nol menyebabkan division by zero |
 | `xi-1 = xi` pada Secant                  | Ditolak — pembagi nol                              |
 | Fungsi Euler always-positive (`c=0, d≥0`) | Bisection & False-Position dinonaktifkan otomatis  |
-| `|xr| > 10000` selama iterasi            | Iterasi dihentikan paksa (divergen ekstrem)        |
+| `\|xr\| > 10000` selama iterasi            | Iterasi dihentikan paksa (divergen ekstrem)        |
 
 ---
 
