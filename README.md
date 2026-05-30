@@ -53,16 +53,39 @@ Tabel Iterasi Metode Bisection
 
 Tabel Kesimpulan Hasil Komputasi Numerik
 
+% Stopping Error : 0.01%
+
 ┌──────────────────┬───────────────┬───────────────┬───────────────┬───────────────┬───────────────┐
 │      Metode      │    Iterasi    │      xr       │    ea (%)     │    et (%)     │  Konvergensi  │
 ├──────────────────┼───────────────┼───────────────┼───────────────┼───────────────┼───────────────┤
 │    Bisection     │      15       │  0.36508179   │  0.00835911   │  0.00450735   │   Konvergen   │
+├──────────────────┼───────────────┼───────────────┼───────────────┼───────────────┼───────────────┤
 │  False-Position  │       9       │  0.36510819   │  0.00725747   │  0.00272519   │   Konvergen   │
+├──────────────────┼───────────────┼───────────────┼───────────────┼───────────────┼───────────────┤
 │  Newton-Raphson  │       4       │  0.36509824   │  0.00873939   │  0.00000027   │   Konvergen   │
+├──────────────────┼───────────────┼───────────────┼───────────────┼───────────────┼───────────────┤
 │      Secant      │       8       │  0.36509824   │  0.00011097   │  0.00000001   │   Konvergen   │
 └──────────────────┴───────────────┴───────────────┴───────────────┴───────────────┴───────────────┘
 
-※   Kesimpulan  :  Metode Secant adalah metode yang memberikan hasil komputasi paling baik.
+Tabel Skoring Metode Komputasi Numerik
+
+※   Konvergen = 1 | Divergen = 0 | Terkecil = 4 | Terbesar = 1
+
+┌───────────────────────┬──────────────────┬──────────────────┬──────────────────┬──────────────────┐
+│       Kriteria        │    Bisection     │  False-Position  │  Newton-Raphson  │      Secant      │
+├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│  Positif Konvergensi  │        1         │        1         │        1         │        1         │
+├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│   Iterasi Terkecil    │        1         │        2         │        4         │        3         │
+├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│     %ea Terkecil      │        2         │        3         │        1         │        4         │
+├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│     %et Terkecil      │        1         │        2         │        3         │        4         │
+├───────────────────────┼──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│         Total         │        5         │        8         │        9         │        12        │
+└───────────────────────┴──────────────────┴──────────────────┴──────────────────┴──────────────────┘
+
+※   Kesimpulan  :  Metode Secant adalah metode yang memberikan hasil komputasi paling baik dan cocok untuk f(x).
 ```
 
 ### Grafik Simulasi (Raylib)
@@ -194,9 +217,17 @@ Koefisien:  a=2, b=-11.7, c=17.7, d=-5
 → f(x) = 2.00000000x^3 + -11.70000000x^2 + 17.70000000x + -5.00000000
 → True Roots: xt_1=3.56316082 | xt_2=0.36509824 | xt_3=1.92174093
 
-Metode: Bisection + False-Position + Newton-Raphson + Secant
+Metode dipilih: Bisection, False-Position, Newton-Raphson, Secant
 Mode berhenti: %es = 0.01%
-Bracket: xl=0, xu=1  |  xi (NR)=0  |  xi-1=0, xi=1 (Secant)
+xl=0, xu=1  |  xi (NR)=0  |  xi-1=0, xi=1 (Secant)
+
+[ Program menampilkan tabel iterasi tiap metode, tabel kesimpulan, dan tabel skoring ]
+
+Apakah Anda ingin melihat Grafik Simulasi? → 1 (Ya)
+Membuka Grafik Simulasi...
+
+Apakah Anda ingin melanjutkan? → 0 (Keluar)
+Terima kasih sudah menggunakan Kalkulator Root Finding kami!
 ```
 
 ---
