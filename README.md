@@ -154,13 +154,35 @@ git clone https://github.com/raden-ayu44/finpro-progc-kelompok5.git
 cd finpro-progc-kelompok5
 ```
 
-### 1. Compile `finpro.exe` — Program Utama (Konsol)
+### 1. ⚠️ Set Encoding UTF-8
+
+Program menggunakan karakter Unicode untuk tabel (┌ ┬ ┐ │ dll). Windows secara default menggunakan code page 437 yang tidak support Unicode, sehingga tabel akan berantakan tanpa langkah ini.
+
+**Jalankan perintah ini setiap kali membuka terminal baru sebelum menjalankan program:**
+
+```powershell
+chcp 65001
+```
+
+Untuk VS Code, tambahkan ini di `settings.json` agar otomatis aktif setiap saat:
+
+```json
+"terminal.integrated.profiles.windows": {
+    "PowerShell": {
+        "source": "PowerShell",
+        "args": ["-NoExit", "-Command", "chcp 65001"]
+    }
+},
+"terminal.integrated.defaultProfile.windows": "PowerShell"
+```
+
+### 2. Compile `finpro.exe` — Program Utama (Konsol)
 
 ```
 gcc srcproject/finpro.c srcproject/input.c srcproject/evaluate.c srcproject/methods.c srcproject/output.c srcproject/simdata.c -o finpro.exe -lm
 ```
 
-### 2. Compile `simulation.exe` — Grafik Simulasi (Raylib)
+### 3. Compile `simulation.exe` — Grafik Simulasi (Raylib)
 
 ```
 gcc srcproject/simulation.c -o simulation.exe -Iraylib/src -Lraylib/src -lraylib -lopengl32 -lgdi32 -lwinmm -lws2_32 -lole32 -luuid -lshlwapi
@@ -168,7 +190,7 @@ gcc srcproject/simulation.c -o simulation.exe -Iraylib/src -Lraylib/src -lraylib
 
 > `simulation.exe` harus di-compile **sebelum** menjalankan `finpro.exe`. Jika belum ada, opsi "Tampilkan Grafik Simulasi" akan gagal.
 
-### 3. Jalankan Program
+### 4. Jalankan Program
 
 ```
 .\finpro.exe
